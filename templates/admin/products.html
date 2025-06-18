@@ -12,40 +12,83 @@
         </a>
     </div>
 
+    <!-- Filter Information -->
+    {% if selected_category or search_query or stock_filter %}
+    <div class="alert alert-info mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-filter me-2"></i>
+                <strong>Filter Aktif:</strong>
+                {% if selected_category %}
+                    {% for category in categories %}
+                        {% if category.id|string == selected_category|string %}
+                            <span class="badge bg-primary me-2">Kategori: {{ category.name }}</span>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if search_query %}
+                    <span class="badge bg-info me-2">Pencarian: "{{ search_query }}"</span>
+                {% endif %}
+                {% if stock_filter == 'in_stock' %}
+                    <span class="badge bg-success me-2">Stok: Tersedia</span>
+                {% elif stock_filter == 'out_of_stock' %}
+                    <span class="badge bg-danger me-2">Stok: Habis</span>
+                {% elif stock_filter == 'low_stock' %}
+                    <span class="badge bg-warning me-2">Stok: Menipis</span>
+                {% endif %}
+                <span class="badge bg-secondary">{{ products|length }} produk ditemukan</span>
+            </div>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Hapus Filter
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Search and Filter -->
     <div class="card shadow mb-4">
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="Cari produk..." id="searchProduct">
-                        <button class="btn btn-outline-secondary" type="button">
-                            <i class="fas fa-search"></i>
-                        </button>
+            <form method="GET" action="{{ url_for('admin_products') }}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Cari produk..." 
+                                   name="search" value="{{ search_query }}">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="category" onchange="this.form.submit()">
+                            <option value="">Semua Kategori</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {{ 'selected' if selected_category|string == category.id|string }}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="stock" onchange="this.form.submit()">
+                            <option value="">Semua Stok</option>
+                            <option value="in_stock" {{ 'selected' if stock_filter == 'in_stock' }}>Tersedia</option>
+                            <option value="out_of_stock" {{ 'selected' if stock_filter == 'out_of_stock' }}>Habis</option>
+                            <option value="low_stock" {{ 'selected' if stock_filter == 'low_stock' }}>Stok Menipis</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-1"></i>Filter
+                            </button>
+                            <a href="{{ url_for('admin_products') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Reset
+                            </a>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="categoryFilter">
-                        <option value="">Semua Kategori</option>
-                        {% for category in categories %}
-                        <option value="{{ category.id }}">{{ category.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="stockFilter">
-                        <option value="">Semua Stok</option>
-                        <option value="in_stock">Tersedia</option>
-                        <option value="out_of_stock">Habis</option>
-                        <option value="low_stock">Stok Menipis</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-outline-primary w-100" onclick="exportProducts()">
-                        <i class="fas fa-download me-2"></i>Export
-                    </button>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -77,16 +120,29 @@
                         <tr>
                             <td>{{ product.id }}</td>
                             <td>
-                                {% if product.image_url %}
-                                <img src="{{ url_for('static', filename=product.image_url) }}" 
-                                     alt="{{ product.name }}" 
-                                     class="img-thumbnail" 
-                                     style="width: 50px; height: 50px; object-fit: cover;">
+                                {% if product.images %}
+                                    {% set primary_image = product.images|selectattr('is_primary', 'equalto', true)|first %}
+                                    {% if primary_image %}
+                                        <img src="{{ url_for('static', filename=primary_image.image_url) }}" 
+                                             alt="{{ product.name }}" 
+                                             class="img-thumbnail" 
+                                             style="width: 50px; height: 50px; object-fit: cover;">
+                                    {% else %}
+                                        <img src="{{ url_for('static', filename=product.images[0].image_url) }}" 
+                                             alt="{{ product.name }}" 
+                                             class="img-thumbnail" 
+                                             style="width: 50px; height: 50px; object-fit: cover;">
+                                    {% endif %}
+                                {% elif product.image_url %}
+                                    <img src="{{ url_for('static', filename=product.image_url) }}" 
+                                         alt="{{ product.name }}" 
+                                         class="img-thumbnail" 
+                                         style="width: 50px; height: 50px; object-fit: cover;">
                                 {% else %}
-                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center" 
-                                     style="width: 50px; height: 50px;">
-                                    <i class="fas fa-image"></i>
-                                </div>
+                                    <div class="bg-secondary text-white d-flex align-items-center justify-content-center" 
+                                         style="width: 50px; height: 50px;">
+                                        <i class="fas fa-image"></i>
+                                    </div>
                                 {% endif %}
                             </td>
                             <td>

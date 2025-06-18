@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Kelola Rekening Bank - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-university"></i> Kelola Rekening Bank</h2>
+                <a href="{{ url_for('add_bank_account') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Tambah Rekening
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="card">
+                <div class="card-body">
+                    {% if bank_accounts and bank_accounts|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Bank</th>
+                                        <th>Nomor Rekening</th>
+                                        <th>Pemilik Rekening</th>
+                                        <th>Tipe</th>
+                                        <th>Status</th>
+                                        <th>Dibuat</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for account in bank_accounts %}
+                                    <tr>
+                                        <td>{{ account.id }}</td>
+                                        <td>
+                                            <strong>{{ account.bank_name }}</strong>
+                                            {% if account.notes %}
+                                                <br><small class="text-muted">{{ account.notes }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <code>{{ account.account_number }}</code>
+                                        </td>
+                                        <td>{{ account.account_holder }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ account.account_type or 'N/A' }}</span>
+                                        </td>
+                                        <td>
+                                            {% if account.is_active %}
+                                                <span class="badge bg-success">Aktif</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Nonaktif</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small>{{ account.created_at.strftime('%d/%m/%Y %H:%M') if account.created_at else 'N/A' }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('admin_bank_account_detail', account_id=account.id) }}" 
+                                                   class="btn btn-sm btn-info" title="Detail">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('edit_bank_account', account_id=account.id) }}" 
+                                                   class="btn btn-sm btn-warning" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-danger" 
+                                                        onclick="confirmDelete({{ account.id }}, '{{ account.bank_name }} - {{ account.account_number }}')" 
+                                                        title="Hapus">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-university fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Belum ada rekening bank</h5>
+                            <p class="text-muted">Tambahkan rekening bank untuk menerima pembayaran transfer</p>
+                            <a href="{{ url_for('add_bank_account') }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Tambah Rekening Pertama
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin menghapus rekening bank:</p>
+                <p><strong id="deleteAccountName"></strong></p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Peringatan:</strong> Rekening yang sudah digunakan dalam pembayaran tidak dapat dihapus.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Hapus</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(accountId, accountName) {
+    document.getElementById('deleteAccountName').textContent = accountName;
+    document.getElementById('deleteForm').action = `/admin/bank-accounts/delete/${accountId}`;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %} 

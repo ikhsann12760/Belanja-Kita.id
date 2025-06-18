@@ -55,11 +55,37 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True)
     last_login = db.Column(db.DateTime)
 
+class BankAccount(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    bank_name = db.Column(db.String(100), nullable=False)  # BCA, Mandiri, BNI, dll
+    account_number = db.Column(db.String(50), nullable=False)
+    account_holder = db.Column(db.String(100), nullable=False)
+    account_type = db.Column(db.String(50))  # Savings, Current, Business
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    notes = db.Column(db.Text)  # Additional notes
+    
+    # Relationships
+    payments = db.relationship('Payment', backref='bank_account', lazy=True)
+
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     products = db.relationship('Product', backref='category', lazy=True)
+
+class ProductImage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    image_url = db.Column(db.String(200), nullable=False)
+    alt_text = db.Column(db.String(200))  # Alt text for accessibility
+    is_primary = db.Column(db.Boolean, default=False)  # Primary/main image
+    sort_order = db.Column(db.Integer, default=0)  # For ordering images
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    product = db.relationship('Product', backref='images')
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -109,6 +135,29 @@ class Order(db.Model):
     tracking_number = db.Column(db.String(50))  # Auto-generated tracking number
     notes = db.Column(db.Text)  # Additional notes from customer
     payment_method = db.Column(db.String(50), nullable=False)  # Payment method (COD, Transfer, E-Wallet, etc.)
+    
+    # Payment Information
+    payment_status = db.Column(db.String(50), default='pending')  # pending, paid, failed, refunded
+    payment_date = db.Column(db.DateTime)
+    payment_reference = db.Column(db.String(100))  # Reference number from payment gateway
+    bank_account_id = db.Column(db.Integer, db.ForeignKey('bank_account.id'))  # For bank transfers
+    
+    # Relationships
+    payment = db.relationship('Payment', backref='order', uselist=False)
+
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    payment_method = db.Column(db.String(50), nullable=False)
+    payment_status = db.Column(db.String(50), default='pending')
+    payment_date = db.Column(db.DateTime)
+    bank_account_id = db.Column(db.Integer, db.ForeignKey('bank_account.id'))
+    reference_number = db.Column(db.String(100))  # Bank reference, payment gateway reference
+    transaction_id = db.Column(db.String(100))  # Payment gateway transaction ID
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    notes = db.Column(db.Text)  # Admin notes about payment
 
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -271,6 +320,37 @@ def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     return render_template('product_detail.html', product=product)
 
+@app.route('/products')
+def products():
+    # Get filter parameters
+    category_filter = request.args.get('category', '')
+    search_query = request.args.get('search', '')
+    
+    # Base query - only active products
+    products_query = Product.query.filter_by(is_active=True)
+    
+    # Apply category filter
+    if category_filter:
+        products_query = products_query.filter_by(category_id=category_filter)
+    
+    # Apply search filter
+    if search_query:
+        products_query = products_query.filter(
+            Product.name.ilike(f'%{search_query}%') |
+            Product.description.ilike(f'%{search_query}%') |
+            Product.brand.ilike(f'%{search_query}%')
+        )
+    
+    # Get filtered products
+    products = products_query.all()
+    categories = Category.query.all()
+    
+    return render_template('products.html', 
+                         products=products, 
+                         categories=categories,
+                         selected_category=category_filter,
+                         search_query=search_query)
+
 @app.route('/admin')
 @login_required
 def admin_dashboard():
@@ -278,11 +358,27 @@ def admin_dashboard():
         flash('Akses ditolak!', 'error')
         return redirect(url_for('index'))
     
-    products = Product.query.all()
+    # Get filter parameters
+    category_filter = request.args.get('category', 'all')
+    
+    # Get all categories for filter dropdown
+    categories = Category.query.all()
+    
+    # Filter products based on category
+    if category_filter == 'all':
+        products = Product.query.all()
+    else:
+        products = Product.query.filter_by(category_id=category_filter).all()
+    
     orders = Order.query.all()
     users = User.query.all()
     
-    return render_template('admin/dashboard.html', products=products, orders=orders, users=users)
+    return render_template('admin/dashboard.html', 
+                         products=products, 
+                         orders=orders, 
+                         users=users, 
+                         categories=categories,
+                         selected_category=category_filter)
 
 @app.route('/admin/products')
 @login_required
@@ -291,9 +387,45 @@ def admin_products():
         flash('Akses ditolak!', 'error')
         return redirect(url_for('index'))
     
-    products = Product.query.all()
+    # Get filter parameters
+    category_filter = request.args.get('category', '')
+    search_query = request.args.get('search', '')
+    stock_filter = request.args.get('stock', '')
+    
+    # Base query
+    products_query = Product.query
+    
+    # Apply category filter
+    if category_filter:
+        products_query = products_query.filter_by(category_id=category_filter)
+    
+    # Apply search filter
+    if search_query:
+        products_query = products_query.filter(
+            Product.name.ilike(f'%{search_query}%') |
+            Product.description.ilike(f'%{search_query}%') |
+            Product.sku.ilike(f'%{search_query}%') |
+            Product.brand.ilike(f'%{search_query}%')
+        )
+    
+    # Apply stock filter
+    if stock_filter == 'in_stock':
+        products_query = products_query.filter(Product.stock > 0)
+    elif stock_filter == 'out_of_stock':
+        products_query = products_query.filter(Product.stock == 0)
+    elif stock_filter == 'low_stock':
+        products_query = products_query.filter(Product.stock <= Product.min_stock)
+    
+    # Get filtered products
+    products = products_query.all()
     categories = Category.query.all()
-    return render_template('admin/products.html', products=products, categories=categories)
+    
+    return render_template('admin/products.html', 
+                         products=products, 
+                         categories=categories,
+                         selected_category=category_filter,
+                         search_query=search_query,
+                         stock_filter=stock_filter)
 
 @app.route('/admin/products/add', methods=['GET', 'POST'])
 @login_required
@@ -327,21 +459,13 @@ def add_product():
         is_featured = 'is_featured' in request.form
         is_active = 'is_active' in request.form
         
-        # Handle file upload
-        image = request.files.get('image')
-        image_url = ''
-        if image:
-            filename = secure_filename(image.filename)
-            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            image_url = f'uploads/{filename}'
-        
+        # Create product first
         product = Product(
             name=name,
             description=description,
             price=price,
             stock=stock,
             category_id=category_id,
-            image_url=image_url,
             sku=generate_sku(category.name, name),
             brand=brand,
             model=model,
@@ -359,6 +483,62 @@ def add_product():
         )
         
         db.session.add(product)
+        db.session.flush()  # Get product ID
+        
+        # Handle multiple image uploads
+        images = request.files.getlist('product_images')
+        image_primary_list = request.form.getlist('image_primary')
+        image_order_list = request.form.getlist('image_order')
+        
+        if not images or not images[0].filename:
+            flash('Minimal 1 gambar produk harus diupload!', 'error')
+            db.session.rollback()
+            categories = Category.query.all()
+            return render_template('admin/add_product.html', categories=categories)
+        
+        # Process each image
+        for i, image in enumerate(images):
+            if image and image.filename:
+                # Validate file size (5MB max)
+                if len(image.read()) > 5 * 1024 * 1024:
+                    flash(f'Gambar {image.filename} terlalu besar. Maksimal 5MB.', 'error')
+                    db.session.rollback()
+                    categories = Category.query.all()
+                    return render_template('admin/add_product.html', categories=categories)
+                
+                # Reset file pointer
+                image.seek(0)
+                
+                # Save image
+                filename = secure_filename(f"{product.id}_{i}_{image.filename}")
+                image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                image_url = f'uploads/{filename}'
+                
+                # Check if this is primary image
+                is_primary = i < len(image_primary_list) and image_primary_list[i] == '1'
+                sort_order = i < len(image_order_list) and int(image_order_list[i]) or i
+                
+                # Create ProductImage record
+                product_image = ProductImage(
+                    product_id=product.id,
+                    image_url=image_url,
+                    alt_text=f"Gambar {product.name}",
+                    is_primary=is_primary,
+                    sort_order=sort_order
+                )
+                
+                db.session.add(product_image)
+        
+        # Set first image as primary if no primary image set
+        if not any(img.is_primary for img in product.images):
+            if product.images:
+                product.images[0].is_primary = True
+        
+        # Set main image_url for backward compatibility
+        primary_image = next((img for img in product.images if img.is_primary), None)
+        if primary_image:
+            product.image_url = primary_image.image_url
+        
         db.session.commit()
         flash('Produk berhasil ditambahkan!', 'success')
         return redirect(url_for('admin_products'))
@@ -397,12 +577,63 @@ def edit_product(product_id):
         product.is_featured = 'is_featured' in request.form
         product.is_active = 'is_active' in request.form
         
-        # Handle file upload
-        image = request.files.get('image')
-        if image:
-            filename = secure_filename(image.filename)
-            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            product.image_url = f'uploads/{filename}'
+        # Handle new image uploads
+        images = request.files.getlist('product_images')
+        image_primary_list = request.form.getlist('image_primary')
+        image_order_list = request.form.getlist('image_order')
+        
+        # Process new images if any
+        if images and images[0].filename:
+            # Count existing images
+            existing_count = len(product.images)
+            max_images = 10
+            
+            if existing_count + len(images) > max_images:
+                flash(f'Maksimal {max_images} gambar per produk!', 'error')
+                categories = Category.query.all()
+                return render_template('admin/edit_product.html', product=product, categories=categories)
+            
+            # Process each new image
+            for i, image in enumerate(images):
+                if image and image.filename:
+                    # Validate file size (5MB max)
+                    if len(image.read()) > 5 * 1024 * 1024:
+                        flash(f'Gambar {image.filename} terlalu besar. Maksimal 5MB.', 'error')
+                        categories = Category.query.all()
+                        return render_template('admin/edit_product.html', product=product, categories=categories)
+                    
+                    # Reset file pointer
+                    image.seek(0)
+                    
+                    # Save image
+                    filename = secure_filename(f"{product.id}_{existing_count + i}_{image.filename}")
+                    image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    image_url = f'uploads/{filename}'
+                    
+                    # Check if this is primary image
+                    is_primary = i < len(image_primary_list) and image_primary_list[i] == '1'
+                    sort_order = existing_count + (i < len(image_order_list) and int(image_order_list[i]) or i)
+                    
+                    # Create ProductImage record
+                    product_image = ProductImage(
+                        product_id=product.id,
+                        image_url=image_url,
+                        alt_text=f"Gambar {product.name}",
+                        is_primary=is_primary,
+                        sort_order=sort_order
+                    )
+                    
+                    db.session.add(product_image)
+            
+            # Set first new image as primary if no primary image set
+            if not any(img.is_primary for img in product.images):
+                if product.images:
+                    product.images[0].is_primary = True
+        
+        # Update main image_url for backward compatibility
+        primary_image = next((img for img in product.images if img.is_primary), None)
+        if primary_image:
+            product.image_url = primary_image.image_url
         
         db.session.commit()
         flash('Produk berhasil diperbarui!', 'success')
@@ -547,11 +778,17 @@ def cart():
 @login_required
 def add_to_cart(product_id):
     product = Product.query.get_or_404(product_id)
-    quantity = int(request.form.get('quantity', 1))
+    
+    # Handle both form data and JSON data
+    if request.is_json:
+        data = request.get_json()
+        quantity = int(data.get('quantity', 1))
+    else:
+        quantity = int(request.form.get('quantity', 1))
     
     # Check stock availability
     if product.stock < quantity:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
             return jsonify({
                 'success': False,
                 'message': f'Stok tidak mencukupi. Tersedia: {product.stock} unit'
@@ -573,7 +810,7 @@ def add_to_cart(product_id):
     session['cart'] = cart
     
     # Return JSON response for AJAX requests
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
         return jsonify({
             'success': True,
             'message': f'{product.name} berhasil ditambahkan ke keranjang!',
@@ -959,22 +1196,30 @@ def update_support_ticket(ticket_id):
         return redirect(url_for('index'))
     
     ticket = CustomerSupport.query.get_or_404(ticket_id)
+    status = request.form.get('status')
+    priority = request.form.get('priority')
+    admin_notes = request.form.get('admin_notes')
     
-    new_status = request.form.get('status')
-    admin_notes = request.form.get('admin_notes', '')
-    
-    if new_status in ['open', 'in_progress', 'resolved', 'closed']:
-        ticket.status = new_status
-        ticket.admin_notes = admin_notes
-        
-        if new_status == 'resolved':
+    if status:
+        ticket.status = status
+        if status == 'resolved':
             ticket.resolved_at = datetime.utcnow()
             ticket.resolved_by = current_user.id
-        
+    
+    if priority:
+        ticket.priority = priority
+    
+    if admin_notes:
+        ticket.admin_notes = admin_notes
+    
+    ticket.updated_at = datetime.utcnow()
+    
+    try:
         db.session.commit()
-        flash(f'Status tiket berhasil diupdate menjadi {new_status}', 'success')
-    else:
-        flash('Status tidak valid!', 'error')
+        flash('Tiket support berhasil diperbarui!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {e}', 'error')
     
     return redirect(url_for('admin_support_detail', ticket_id=ticket_id))
 
@@ -1218,6 +1463,242 @@ def admin_create_order():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Terjadi kesalahan: {str(e)}'}), 500
+
+# Bank Account Management Routes
+@app.route('/admin/bank-accounts')
+@login_required
+def admin_bank_accounts():
+    if not current_user.is_admin:
+        flash('Akses ditolak!', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        bank_accounts = BankAccount.query.order_by(BankAccount.created_at.desc()).all()
+        return render_template('admin/bank_accounts.html', bank_accounts=bank_accounts)
+    except Exception as e:
+        flash(f'Error saat memuat data rekening bank: {str(e)}', 'error')
+        return render_template('admin/bank_accounts.html', bank_accounts=[])
+
+@app.route('/admin/bank-accounts/add', methods=['GET', 'POST'])
+@login_required
+def add_bank_account():
+    if not current_user.is_admin:
+        flash('Akses ditolak!', 'error')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        bank_name = request.form.get('bank_name')
+        account_number = request.form.get('account_number')
+        account_holder = request.form.get('account_holder')
+        account_type = request.form.get('account_type')
+        notes = request.form.get('notes')
+        
+        if not all([bank_name, account_number, account_holder]):
+            flash('Semua field wajib diisi!', 'error')
+            return render_template('admin/add_bank_account.html')
+        
+        bank_account = BankAccount(
+            bank_name=bank_name,
+            account_number=account_number,
+            account_holder=account_holder,
+            account_type=account_type,
+            notes=notes
+        )
+        
+        try:
+            db.session.add(bank_account)
+            db.session.commit()
+            flash('Rekening bank berhasil ditambahkan!', 'success')
+            return redirect(url_for('admin_bank_accounts'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'error')
+    
+    return render_template('admin/add_bank_account.html')
+
+@app.route('/admin/bank-accounts/edit/<int:account_id>', methods=['GET', 'POST'])
+@login_required
+def edit_bank_account(account_id):
+    if not current_user.is_admin:
+        flash('Akses ditolak!', 'error')
+        return redirect(url_for('index'))
+    
+    bank_account = BankAccount.query.get_or_404(account_id)
+    
+    if request.method == 'POST':
+        bank_name = request.form.get('bank_name')
+        account_number = request.form.get('account_number')
+        account_holder = request.form.get('account_holder')
+        account_type = request.form.get('account_type')
+        notes = request.form.get('notes')
+        is_active = request.form.get('is_active') == 'on'
+        
+        if not all([bank_name, account_number, account_holder]):
+            flash('Semua field wajib diisi!', 'error')
+            return render_template('admin/edit_bank_account.html', bank_account=bank_account)
+        
+        bank_account.bank_name = bank_name
+        bank_account.account_number = account_number
+        bank_account.account_holder = account_holder
+        bank_account.account_type = account_type
+        bank_account.notes = notes
+        bank_account.is_active = is_active
+        bank_account.updated_at = datetime.utcnow()
+        
+        try:
+            db.session.commit()
+            flash('Rekening bank berhasil diperbarui!', 'success')
+            return redirect(url_for('admin_bank_accounts'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'error')
+    
+    return render_template('admin/edit_bank_account.html', bank_account=bank_account)
+
+@app.route('/admin/bank-accounts/delete/<int:account_id>', methods=['POST'])
+@login_required
+def delete_bank_account(account_id):
+    if not current_user.is_admin:
+        flash('Akses ditolak!', 'error')
+        return redirect(url_for('index'))
+    
+    bank_account = BankAccount.query.get_or_404(account_id)
+    
+    # Check if account is being used in payments
+    payments_count = Payment.query.filter_by(bank_account_id=account_id).count()
+    if payments_count > 0:
+        flash(f'Tidak dapat menghapus rekening yang sudah digunakan dalam {payments_count} pembayaran!', 'error')
+        return redirect(url_for('admin_bank_accounts'))
+    
+    try:
+        db.session.delete(bank_account)
+        db.session.commit()
+        flash('Rekening bank berhasil dihapus!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {e}', 'error')
+    
+    return redirect(url_for('admin_bank_accounts'))
+
+@app.route('/admin/bank-accounts/<int:account_id>')
+@login_required
+def admin_bank_account_detail(account_id):
+    if not current_user.is_admin:
+        flash('Akses ditolak!', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        bank_account = BankAccount.query.get_or_404(account_id)
+        payments = Payment.query.filter_by(bank_account_id=account_id).order_by(Payment.created_at.desc()).all()
+        
+        return render_template('admin/bank_account_detail.html', bank_account=bank_account, payments=payments)
+    except Exception as e:
+        flash(f'Error saat memuat detail rekening bank: {str(e)}', 'error')
+        return redirect(url_for('admin_bank_accounts'))
+
+@app.route('/admin/products/images/<int:image_id>/set-primary', methods=['POST'])
+@login_required
+def set_primary_image(image_id):
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Akses ditolak!'}), 403
+    
+    try:
+        # Get the image
+        image = ProductImage.query.get_or_404(image_id)
+        
+        # Remove primary flag from all images of this product
+        ProductImage.query.filter_by(product_id=image.product_id).update({'is_primary': False})
+        
+        # Set this image as primary
+        image.is_primary = True
+        
+        # Update product's main image_url for backward compatibility
+        image.product.image_url = image.image_url
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Gambar utama berhasil diubah'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        }), 500
+
+@app.route('/admin/products/images/<int:image_id>/delete', methods=['POST'])
+@login_required
+def delete_product_image(image_id):
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Akses ditolak!'}), 403
+    
+    try:
+        # Get the image
+        image = ProductImage.query.get_or_404(image_id)
+        product = image.product
+        
+        # Delete image file
+        try:
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], image.image_url.replace('uploads/', '')))
+        except:
+            pass  # File might not exist
+        
+        # Delete from database
+        db.session.delete(image)
+        
+        # If this was the primary image, set another image as primary
+        if image.is_primary and product.images:
+            # Get remaining images
+            remaining_images = [img for img in product.images if img.id != image_id]
+            if remaining_images:
+                remaining_images[0].is_primary = True
+                product.image_url = remaining_images[0].image_url
+            else:
+                product.image_url = None
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Gambar berhasil dihapus'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        }), 500
+
+@app.route('/admin/products/images/reorder', methods=['POST'])
+@login_required
+def reorder_product_images():
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Akses ditolak!'}), 403
+    
+    try:
+        data = request.get_json()
+        image_ids = data.get('image_ids', [])
+        
+        # Update sort order for each image
+        for index, image_id in enumerate(image_ids):
+            image = ProductImage.query.get(image_id)
+            if image:
+                image.sort_order = index
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Urutan gambar berhasil diperbarui'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        }), 500
 
 if __name__ == '__main__':
     with app.app_context():

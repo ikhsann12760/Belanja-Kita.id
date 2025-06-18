@@ -49,7 +49,57 @@
                                 <i class="fas fa-headset me-2"></i>Customer Support
                             </a>
                         </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_bank_accounts') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-university me-2"></i>Rekening Bank
+                            </a>
+                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-filter me-2"></i>Filter Kategori Produk
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('admin_dashboard') }}" class="row align-items-end">
+                        <div class="col-md-4">
+                            <label for="category" class="form-label">Pilih Kategori:</label>
+                            <select class="form-select" id="category" name="category" onchange="this.form.submit()">
+                                <option value="all" {{ 'selected' if selected_category == 'all' }}>Semua Kategori</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" {{ 'selected' if selected_category|string == category.id|string }}>
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Filter
+                            </button>
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Reset
+                            </a>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="badge bg-info fs-6">
+                                <i class="fas fa-box me-1"></i>
+                                {{ products|length }} Produk
+                                {% if selected_category != 'all' %}
+                                    dalam kategori ini
+                                {% endif %}
+                            </span>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -222,35 +272,137 @@
         <div class="col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Produk Terlaris</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        {% if selected_category == 'all' %}
+                            <i class="fas fa-star me-2"></i>Produk Terlaris
+                        {% else %}
+                            <i class="fas fa-filter me-2"></i>Produk Kategori: 
+                            {% for category in categories %}
+                                {% if category.id|string == selected_category|string %}
+                                    <span class="badge bg-primary">{{ category.name }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </h6>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Produk</th>
-                                    <th>Kategori</th>
-                                    <th>Stok</th>
-                                    <th>Harga</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for product in products[:5] %}
-                                <tr>
-                                    <td>{{ product.name }}</td>
-                                    <td>{{ product.category.name }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if product.stock > 0 else 'danger' }}">
-                                            {{ product.stock }}
-                                        </span>
-                                    </td>
-                                    <td>Rp {{ "{:,.0f}".format(product.price) }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    {% if products %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>Produk</th>
+                                        <th>Kategori</th>
+                                        <th>Stok</th>
+                                        <th>Harga</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product in products[:5] %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {% if product.images %}
+                                                    {% set primary_image = product.images|selectattr('is_primary', 'equalto', true)|first %}
+                                                    {% if primary_image %}
+                                                        <img src="{{ url_for('static', filename=primary_image.image_url) }}" 
+                                                             alt="{{ product.name }}" 
+                                                             class="me-2" 
+                                                             style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                                    {% else %}
+                                                        <img src="{{ url_for('static', filename=product.images[0].image_url) }}" 
+                                                             alt="{{ product.name }}" 
+                                                             class="me-2" 
+                                                             style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                                    {% endif %}
+                                                {% elif product.image_url %}
+                                                    <img src="{{ url_for('static', filename=product.image_url) }}" 
+                                                         alt="{{ product.name }}" 
+                                                         class="me-2" 
+                                                         style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                                {% else %}
+                                                    <div class="bg-light me-2 d-flex align-items-center justify-content-center" 
+                                                         style="width: 40px; height: 40px; border-radius: 4px;">
+                                                        <i class="fas fa-image text-muted"></i>
+                                                    </div>
+                                                {% endif %}
+                                                <div>
+                                                    <strong>{{ product.name }}</strong>
+                                                    {% if product.brand %}
+                                                        <br><small class="text-muted">{{ product.brand }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ product.category.name }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if product.stock > 0 else 'danger' }}">
+                                                {{ product.stock }}
+                                            </span>
+                                            {% if product.stock <= product.min_stock %}
+                                                <br><small class="text-warning">Stok menipis!</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>Rp {{ "{:,.0f}".format(product.price) }}</td>
+                                        <td>
+                                            {% if product.is_active %}
+                                                <span class="badge bg-success">Aktif</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Nonaktif</span>
+                                            {% endif %}
+                                            {% if product.is_featured %}
+                                                <br><span class="badge bg-warning">Featured</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if products|length > 5 %}
+                            <div class="text-center mt-3">
+                                {% if selected_category == 'all' %}
+                                    <a href="{{ url_for('admin_products') }}" class="btn btn-outline-primary btn-sm me-2">
+                                        <i class="fas fa-eye me-1"></i>Lihat Semua Produk
+                                    </a>
+                                    <a href="{{ url_for('products') }}" class="btn btn-outline-success btn-sm" target="_blank">
+                                        <i class="fas fa-external-link-alt me-1"></i>Lihat di Customer
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('admin_products', category=selected_category) }}" class="btn btn-outline-primary btn-sm me-2">
+                                        <i class="fas fa-eye me-1"></i>Lihat Semua Produk Kategori Ini
+                                    </a>
+                                    <a href="{{ url_for('products', category=selected_category) }}" class="btn btn-outline-success btn-sm" target="_blank">
+                                        <i class="fas fa-external-link-alt me-1"></i>Lihat di Customer
+                                    </a>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">
+                                {% if selected_category == 'all' %}
+                                    Belum ada produk
+                                {% else %}
+                                    Tidak ada produk dalam kategori ini
+                                {% endif %}
+                            </h5>
+                            <p class="text-muted">
+                                {% if selected_category == 'all' %}
+                                    Tambahkan produk pertama untuk memulai
+                                {% else %}
+                                    Coba pilih kategori lain atau tambahkan produk ke kategori ini
+                                {% endif %}
+                            </p>
+                            <a href="{{ url_for('add_product') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Tambah Produk
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

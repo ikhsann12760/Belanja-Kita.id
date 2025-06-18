@@ -46,7 +46,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#products">
+                        <a class="nav-link" href="{{ url_for('products') }}">
                             <i class="fas fa-shopping-bag me-1"></i>Produk
                         </a>
                     </li>
@@ -75,6 +75,7 @@
                                     <li><a class="dropdown-item" href="{{ url_for('admin_orders') }}"><i class="fas fa-shopping-cart me-2"></i>Kelola Pesanan</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('admin_customers') }}"><i class="fas fa-users me-2"></i>Kelola Customer</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('admin_support') }}"><i class="fas fa-headset me-2"></i>Customer Support</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_bank_accounts') }}"><i class="fas fa-university me-2"></i>Rekening Bank</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="#"><i class="fas fa-chart-bar me-2"></i>Laporan</a></li>
                                 </ul>

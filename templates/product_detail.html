@@ -17,35 +17,49 @@
         <div class="col-lg-6 mb-4">
             <div class="product-gallery">
                 <div class="main-image mb-3">
-                    {% if product.image_url %}
-                    <img src="{{ url_for('static', filename=product.image_url) }}" 
-                         class="img-fluid rounded" 
-                         alt="{{ product.name }}" 
-                         id="mainImage">
+                    {% if product.images %}
+                        {% set primary_image = product.images|selectattr('is_primary', 'equalto', true)|first %}
+                        {% if primary_image %}
+                            <img src="{{ url_for('static', filename=primary_image.image_url) }}" 
+                                 class="img-fluid rounded" 
+                                 alt="{{ product.name }}" 
+                                 id="mainImage">
+                        {% else %}
+                            <img src="{{ url_for('static', filename=product.images[0].image_url) }}" 
+                                 class="img-fluid rounded" 
+                                 alt="{{ product.name }}" 
+                                 id="mainImage">
+                        {% endif %}
+                    {% elif product.image_url %}
+                        <img src="{{ url_for('static', filename=product.image_url) }}" 
+                             class="img-fluid rounded" 
+                             alt="{{ product.name }}" 
+                             id="mainImage">
                     {% else %}
-                    <img src="https://via.placeholder.com/600x400/6c757d/ffffff?text=No+Image" 
-                         class="img-fluid rounded" 
-                         alt="{{ product.name }}" 
-                         id="mainImage">
+                        <img src="https://via.placeholder.com/600x400/6c757d/ffffff?text=No+Image" 
+                             class="img-fluid rounded" 
+                             alt="{{ product.name }}" 
+                             id="mainImage">
                     {% endif %}
                 </div>
                 
-                <!-- Thumbnail Images (if multiple images) -->
+                <!-- Thumbnail Images -->
                 <div class="thumbnail-images d-flex gap-2">
-                    {% if product.image_url %}
-                    <img src="{{ url_for('static', filename=product.image_url) }}" 
-                         class="img-thumbnail thumbnail-img" 
-                         alt="{{ product.name }}"
-                         onclick="changeMainImage(this.src)">
+                    {% if product.images %}
+                        {% for image in product.images|sort(attribute='sort_order') %}
+                            <img src="{{ url_for('static', filename=image.image_url) }}" 
+                                 class="img-thumbnail thumbnail-img" 
+                                 alt="{{ product.name }}"
+                                 onclick="changeMainImage(this.src)"
+                                 style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;">
+                        {% endfor %}
+                    {% elif product.image_url %}
+                        <img src="{{ url_for('static', filename=product.image_url) }}" 
+                             class="img-thumbnail thumbnail-img" 
+                             alt="{{ product.name }}"
+                             onclick="changeMainImage(this.src)"
+                             style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;">
                     {% endif %}
-                    <img src="https://via.placeholder.com/100x100/6c757d/ffffff?text=Img+2" 
-                         class="img-thumbnail thumbnail-img" 
-                         alt="Product Image 2"
-                         onclick="changeMainImage(this.src)">
-                    <img src="https://via.placeholder.com/100x100/6c757d/ffffff?text=Img+3" 
-                         class="img-thumbnail thumbnail-img" 
-                         alt="Product Image 3"
-                         onclick="changeMainImage(this.src)">
                 </div>
             </div>
         </div>

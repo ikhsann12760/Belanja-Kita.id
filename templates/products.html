@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Produk - Belanja Kita.id{% endblock %}
+
+{% block extra_css %}
+<style>
+.category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="bg-primary text-white py-4">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h2 mb-0">
+                    <i class="fas fa-shopping-bag me-2"></i>Produk
+                    {% if selected_category %}
+                        {% for category in categories %}
+                            {% if category.id|string == selected_category|string %}
+                                - {{ category.name }}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </h1>
+                <p class="mb-0 mt-2">
+                    {% if selected_category %}
+                        Temukan produk terbaik dalam kategori ini
+                    {% else %}
+                        Temukan berbagai produk berkualitas dengan harga terbaik
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <span class="badge bg-light text-dark fs-6">
+                    <i class="fas fa-box me-1"></i>
+                    {{ products|length }} Produk
+                </span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Search and Filter -->
+<section class="py-4 bg-light">
+    <div class="container">
+        <form method="GET" action="{{ url_for('products') }}">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Cari produk..." 
+                               name="search" value="{{ search_query }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" name="category" onchange="this.form.submit()">
+                        <option value="">Semua Kategori</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {{ 'selected' if selected_category|string == category.id|string }}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('products') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times me-1"></i>Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- Filter Information -->
+{% if selected_category or search_query %}
+<section class="py-3">
+    <div class="container">
+        <div class="alert alert-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-filter me-2"></i>
+                    <strong>Filter Aktif:</strong>
+                    {% if selected_category %}
+                        {% for category in categories %}
+                            {% if category.id|string == selected_category|string %}
+                                <span class="badge bg-primary me-2">Kategori: {{ category.name }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if search_query %}
+                        <span class="badge bg-info me-2">Pencarian: "{{ search_query }}"</span>
+                    {% endif %}
+                    <span class="badge bg-secondary">{{ products|length }} produk ditemukan</span>
+                </div>
+                <a href="{{ url_for('products') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Hapus Filter
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Products Grid -->
+<section class="py-5">
+    <div class="container">
+        {% if products %}
+            <div class="row">
+                {% for product in products %}
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card h-100 product-card shadow-sm">
+                        {% if product.images %}
+                            {% set primary_image = product.images|selectattr('is_primary', 'equalto', true)|first %}
+                            {% if primary_image %}
+                                <img src="{{ url_for('static', filename=primary_image.image_url) }}" 
+                                     class="card-img-top" alt="{{ product.name }}"
+                                     style="height: 200px; object-fit: cover;">
+                            {% else %}
+                                <img src="{{ url_for('static', filename=product.images[0].image_url) }}" 
+                                     class="card-img-top" alt="{{ product.name }}"
+                                     style="height: 200px; object-fit: cover;">
+                            {% endif %}
+                        {% elif product.image_url %}
+                            <img src="{{ url_for('static', filename=product.image_url) }}" 
+                                 class="card-img-top" alt="{{ product.name }}"
+                                 style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                                 style="height: 200px;">
+                                <i class="fas fa-image fa-3x text-muted"></i>
+                            </div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p class="card-text text-muted">
+                                {{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}
+                            </p>
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="h5 text-primary mb-0">Rp {{ "{:,.0f}".format(product.price) }}</span>
+                                    <span class="badge bg-{{ 'success' if product.stock > 0 else 'danger' }}">
+                                        {{ 'Tersedia' if product.stock > 0 else 'Habis' }}
+                                    </span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('product_detail', product_id=product.id) }}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-eye me-2"></i>Detail Produk
+                                    </a>
+                                    {% if product.stock > 0 and current_user.is_authenticated %}
+                                    <button class="btn btn-primary" 
+                                            onclick="addToCart({{ product.id }})">
+                                        <i class="fas fa-cart-plus me-2"></i>Tambah ke Keranjang
+                                    </button>
+                                    {% elif not current_user.is_authenticated %}
+                                    <a href="{{ url_for('login') }}" class="btn btn-primary">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Login untuk Beli
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">
+                    {% if selected_category or search_query %}
+                        Tidak ada produk yang ditemukan
+                    {% else %}
+                        Belum ada produk tersedia
+                    {% endif %}
+                </h4>
+                <p class="text-muted">
+                    {% if selected_category or search_query %}
+                        Coba ubah kata kunci pencarian atau filter kategori Anda.
+                    {% else %}
+                        Produk akan segera tersedia.
+                    {% endif %}
+                </p>
+                {% if selected_category or search_query %}
+                <a href="{{ url_for('products') }}" class="btn btn-primary">
+                    <i class="fas fa-times me-2"></i>Hapus Filter
+                </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h3 class="text-center mb-4">Jelajahi Kategori Lainnya</h3>
+        <div class="row">
+            {% for category in categories %}
+            <div class="col-md-3 mb-3">
+                <a href="{{ url_for('products', category=category.id) }}" 
+                   class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <i class="fas fa-tags fa-2x text-primary mb-2"></i>
+                            <h6 class="card-title">{{ category.name }}</h6>
+                            <small class="text-muted">{{ category.description[:50] }}{% if category.description|length > 50 %}...{% endif %}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addToCart(productId) {
+    fetch(`/add_to_cart/${productId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            quantity: 1
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.message || 'Terjadi kesalahan');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Update cart badge
+            const cartBadge = document.getElementById('cartBadge');
+            if (cartBadge) {
+                cartBadge.textContent = data.cart_count;
+            }
+            
+            // Show success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: data.message || 'Produk telah ditambahkan ke keranjang',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: data.message || 'Terjadi kesalahan saat menambahkan ke keranjang'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal!',
+            text: error.message || 'Terjadi kesalahan saat menambahkan ke keranjang'
+        });
+    });
+}
+</script>
+{% endblock %} 

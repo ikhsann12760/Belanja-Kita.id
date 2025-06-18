@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Rekening Bank - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-university"></i> Detail Rekening Bank</h2>
+                <div>
+                    <a href="{{ url_for('edit_bank_account', account_id=bank_account.id) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="{{ url_for('admin_bank_accounts') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </a>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Bank Account Information -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-info-circle"></i> Informasi Rekening</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>ID:</strong></td>
+                                    <td>{{ bank_account.id }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Bank:</strong></td>
+                                    <td>{{ bank_account.bank_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Nomor Rekening:</strong></td>
+                                    <td><code>{{ bank_account.account_number }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Pemilik Rekening:</strong></td>
+                                    <td>{{ bank_account.account_holder }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tipe Rekening:</strong></td>
+                                    <td>
+                                        <span class="badge bg-info">{{ bank_account.account_type or 'N/A' }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        {% if bank_account.is_active %}
+                                            <span class="badge bg-success">Aktif</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Nonaktif</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Dibuat:</strong></td>
+                                    <td>{{ bank_account.created_at.strftime('%d/%m/%Y %H:%M') if bank_account.created_at else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Diperbarui:</strong></td>
+                                    <td>{{ bank_account.updated_at.strftime('%d/%m/%Y %H:%M') if bank_account.updated_at else 'N/A' }}</td>
+                                </tr>
+                                {% if bank_account.notes %}
+                                <tr>
+                                    <td><strong>Catatan:</strong></td>
+                                    <td>{{ bank_account.notes }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-pie"></i> Statistik Pembayaran</h5>
+                        </div>
+                        <div class="card-body">
+                            {% set total_payments = payments|length %}
+                            {% set successful_payments = payments|selectattr('payment_status', 'equalto', 'paid')|list|length %}
+                            {% set pending_payments = payments|selectattr('payment_status', 'equalto', 'pending')|list|length %}
+                            {% set total_amount = payments|selectattr('payment_status', 'equalto', 'paid')|sum(attribute='amount') %}
+
+                            <div class="row text-center">
+                                <div class="col-6 mb-3">
+                                    <div class="border rounded p-3">
+                                        <h4 class="text-primary">{{ total_payments }}</h4>
+                                        <small class="text-muted">Total Pembayaran</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="border rounded p-3">
+                                        <h4 class="text-success">{{ successful_payments }}</h4>
+                                        <small class="text-muted">Berhasil</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="border rounded p-3">
+                                        <h4 class="text-warning">{{ pending_payments }}</h4>
+                                        <small class="text-muted">Pending</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="border rounded p-3">
+                                        <h4 class="text-info">Rp {{ "{:,.0f}".format(total_amount) }}</h4>
+                                        <small class="text-muted">Total Diterima</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-history"></i> Riwayat Pembayaran</h5>
+                </div>
+                <div class="card-body">
+                    {% if payments %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Order</th>
+                                        <th>Customer</th>
+                                        <th>Jumlah</th>
+                                        <th>Metode</th>
+                                        <th>Status</th>
+                                        <th>Tanggal</th>
+                                        <th>Referensi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for payment in payments %}
+                                    <tr>
+                                        <td>{{ payment.id }}</td>
+                                        <td>
+                                            <a href="{{ url_for('admin_order_detail', order_id=payment.order_id) }}" 
+                                               class="text-decoration-none">
+                                                {{ payment.order.order_number }}
+                                            </a>
+                                        </td>
+                                        <td>{{ payment.order.customer.full_name or payment.order.customer.username }}</td>
+                                        <td>Rp {{ "{:,.0f}".format(payment.amount) }}</td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ payment.payment_method }}</span>
+                                        </td>
+                                        <td>
+                                            {% if payment.payment_status == 'paid' %}
+                                                <span class="badge bg-success">Dibayar</span>
+                                            {% elif payment.payment_status == 'pending' %}
+                                                <span class="badge bg-warning">Pending</span>
+                                            {% elif payment.payment_status == 'failed' %}
+                                                <span class="badge bg-danger">Gagal</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ payment.payment_status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small>{{ payment.created_at.strftime('%d/%m/%Y %H:%M') if payment.created_at else 'N/A' }}</small>
+                                        </td>
+                                        <td>
+                                            {% if payment.reference_number %}
+                                                <code>{{ payment.reference_number }}</code>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Belum ada pembayaran</h5>
+                            <p class="text-muted">Pembayaran yang menggunakan rekening ini akan muncul di sini</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

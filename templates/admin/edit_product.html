@@ -193,37 +193,70 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="image" class="form-label">Gambar Produk</label>
-                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                            <div class="form-text">Format: JPG, PNG, GIF. Maksimal 16MB. Kosongkan jika tidak ingin mengubah gambar.</div>
-                        </div>
-
-                        <!-- Current Image Preview -->
-                        {% if product.image_url %}
-                        <div class="mb-3">
-                            <label class="form-label">Gambar Saat Ini:</label>
-                            <div class="d-flex align-items-center gap-3">
-                                <img src="{{ url_for('static', filename=product.image_url) }}" 
-                                     alt="{{ product.name }}" 
-                                     class="img-thumbnail" 
-                                     style="max-width: 150px; max-height: 150px;">
-                                <div>
-                                    <p class="mb-1"><strong>File:</strong> {{ product.image_url.split('/')[-1] }}</p>
-                                    <p class="mb-0 text-muted">Upload gambar baru untuk mengganti gambar ini</p>
-                                </div>
+                        <!-- Product Images -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-images me-2"></i>Gambar Produk
+                                </h6>
                             </div>
-                        </div>
-                        {% endif %}
+                            <div class="card-body">
+                                <!-- Existing Images -->
+                                {% if product.images %}
+                                <div class="mb-4">
+                                    <h6 class="mb-3">Gambar Saat Ini:</h6>
+                                    <div class="row g-3" id="existingImagesGrid">
+                                        {% for image in product.images|sort(attribute='sort_order') %}
+                                        <div class="col-md-3 col-sm-4 col-6">
+                                            <div class="image-preview-item {{ 'primary' if image.is_primary else '' }}" data-image-id="{{ image.id }}">
+                                                {% if image.is_primary %}
+                                                <span class="primary-badge">Utama</span>
+                                                {% endif %}
+                                                <img src="{{ url_for('static', filename=image.image_url) }}" alt="{{ image.alt_text or product.name }}">
+                                                <div class="image-preview-overlay">
+                                                    <div class="image-preview-actions">
+                                                        <button type="button" class="btn btn-sm btn-success" onclick="setExistingPrimaryImage({{ image.id }})" {{ 'disabled' if image.is_primary else '' }}>
+                                                            <i class="fas fa-star"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteExistingImage({{ image.id }})">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="sort-handle">
+                                                    <i class="fas fa-grip-vertical"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
 
-                        <div class="mb-3">
-                            <div id="imagePreview" class="d-none">
-                                <label class="form-label">Preview Gambar Baru:</label>
-                                <div class="d-flex align-items-center gap-3">
-                                    <img id="previewImg" src="" alt="Preview" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeImage()">
-                                        <i class="fas fa-times"></i> Hapus
-                                    </button>
+                                <!-- Add New Images -->
+                                <div class="mb-3">
+                                    <label for="product_images" class="form-label">Tambah Gambar Baru</label>
+                                    <div class="upload-area" id="uploadArea">
+                                        <div class="upload-content">
+                                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                            <h5>Drag & Drop gambar di sini</h5>
+                                            <p class="text-muted">atau</p>
+                                            <input type="file" class="form-control" id="product_images" name="product_images" 
+                                                   accept="image/*" multiple style="display: none;">
+                                            <button type="button" class="btn btn-primary" onclick="document.getElementById('product_images').click()">
+                                                <i class="fas fa-folder-open me-2"></i>Pilih File
+                                            </button>
+                                            <p class="text-muted mt-2">Format: JPG, PNG, GIF. Maksimal 5MB per gambar. Maksimal 10 gambar total.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- New Image Preview -->
+                                <div id="imagePreviewContainer" class="d-none">
+                                    <h6 class="mb-3">Preview Gambar Baru:</h6>
+                                    <div id="imagePreviewGrid" class="row g-3">
+                                        <!-- Preview images will be added here -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -365,31 +398,413 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
-// Image Preview
-document.getElementById('image').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        if (file.size > 16 * 1024 * 1024) { // 16MB
-            alert('Ukuran file terlalu besar. Maksimal 16MB.');
-            this.value = '';
-            return;
-        }
+let uploadedImages = [];
+let imageCounter = 0;
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('previewImg').src = e.target.result;
-            document.getElementById('imagePreview').classList.remove('d-none');
-            updateProductPreview();
-        };
-        reader.readAsDataURL(file);
+// Initialize drag and drop for new images
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('product_images');
+    
+    if (uploadArea && fileInput) {
+        // Drag and drop events
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+        
+        // File input change
+        fileInput.addEventListener('change', function(e) {
+            handleFiles(e.target.files);
+        });
+    }
+    
+    // Initialize sortable for existing images
+    const existingImagesGrid = document.getElementById('existingImagesGrid');
+    if (existingImagesGrid) {
+        new Sortable(existingImagesGrid, {
+            animation: 150,
+            onEnd: function() {
+                updateExistingImageOrder();
+            }
+        });
     }
 });
 
-function removeImage() {
-    document.getElementById('image').value = '';
-    document.getElementById('imagePreview').classList.add('d-none');
-    updateProductPreview();
+function handleFiles(files) {
+    const maxFiles = 10;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    // Count existing images
+    const existingCount = document.querySelectorAll('#existingImagesGrid .image-preview-item').length;
+    
+    if (existingCount + uploadedImages.length + files.length > maxFiles) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Terlalu Banyak File',
+            text: `Maksimal ${maxFiles} gambar per produk`
+        });
+        return;
+    }
+    
+    Array.from(files).forEach(file => {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            Swal.fire({
+                icon: 'error',
+                title: 'File Tidak Valid',
+                text: 'Hanya file gambar yang diperbolehkan'
+            });
+            return;
+        }
+        
+        // Validate file size
+        if (file.size > maxSize) {
+            Swal.fire({
+                icon: 'error',
+                title: 'File Terlalu Besar',
+                text: 'Maksimal 5MB per gambar'
+            });
+            return;
+        }
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            addImagePreview(file, e.target.result);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function addImagePreview(file, dataUrl) {
+    const imageId = `new_img_${imageCounter++}`;
+    const imageData = {
+        id: imageId,
+        file: file,
+        dataUrl: dataUrl,
+        name: file.name,
+        size: file.size,
+        isPrimary: false // New images are not primary by default
+    };
+    
+    uploadedImages.push(imageData);
+    
+    // Create preview element
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    const previewGrid = document.getElementById('imagePreviewGrid');
+    
+    const previewItem = document.createElement('div');
+    previewItem.className = `col-md-3 col-sm-4 col-6`;
+    previewItem.innerHTML = `
+        <div class="image-preview-item" data-image-id="${imageId}">
+            <img src="${dataUrl}" alt="${file.name}">
+            <div class="image-preview-overlay">
+                <div class="image-preview-actions">
+                    <button type="button" class="btn btn-sm btn-success" onclick="setNewPrimaryImage('${imageId}')">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeNewImage('${imageId}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="sort-handle">
+                <i class="fas fa-grip-vertical"></i>
+            </button>
+        </div>
+    `;
+    
+    previewGrid.appendChild(previewItem);
+    previewContainer.classList.remove('d-none');
+    
+    // Initialize sortable for new images
+    if (uploadedImages.length === 1) {
+        new Sortable(previewGrid, {
+            animation: 150,
+            onEnd: function() {
+                updateNewImageOrder();
+            }
+        });
+    }
+}
+
+// Existing image management
+function setExistingPrimaryImage(imageId) {
+    // Send AJAX request to update primary image
+    fetch(`/admin/products/images/${imageId}/set-primary`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            document.querySelectorAll('#existingImagesGrid .image-preview-item').forEach(item => {
+                const itemId = item.dataset.imageId;
+                const isPrimary = itemId == imageId;
+                
+                item.classList.toggle('primary', isPrimary);
+                
+                const badge = item.querySelector('.primary-badge');
+                if (isPrimary) {
+                    if (!badge) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'primary-badge';
+                        newBadge.textContent = 'Utama';
+                        item.appendChild(newBadge);
+                    }
+                } else {
+                    if (badge) {
+                        badge.remove();
+                    }
+                }
+                
+                const primaryBtn = item.querySelector('.btn-success');
+                if (primaryBtn) {
+                    primaryBtn.disabled = isPrimary;
+                }
+            });
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: 'Gambar utama berhasil diubah',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: data.message || 'Terjadi kesalahan'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal!',
+            text: 'Terjadi kesalahan saat mengubah gambar utama'
+        });
+    });
+}
+
+function deleteExistingImage(imageId) {
+    Swal.fire({
+        title: 'Konfirmasi Hapus',
+        text: 'Apakah Anda yakin ingin menghapus gambar ini?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Send AJAX request to delete image
+            fetch(`/admin/products/images/${imageId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove from DOM
+                    const item = document.querySelector(`#existingImagesGrid [data-image-id="${imageId}"]`).parentNode;
+                    item.remove();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: 'Gambar berhasil dihapus',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: data.message || 'Terjadi kesalahan'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: 'Terjadi kesalahan saat menghapus gambar'
+                });
+            });
+        }
+    });
+}
+
+// New image management
+function setNewPrimaryImage(imageId) {
+    uploadedImages.forEach(img => {
+        img.isPrimary = img.id === imageId;
+    });
+    
+    // Update UI
+    document.querySelectorAll('#imagePreviewGrid .image-preview-item').forEach(item => {
+        const itemId = item.dataset.imageId;
+        const isPrimary = itemId === imageId;
+        
+        item.classList.toggle('primary', isPrimary);
+        
+        const badge = item.querySelector('.primary-badge');
+        if (isPrimary) {
+            if (!badge) {
+                const newBadge = document.createElement('span');
+                newBadge.className = 'primary-badge';
+                newBadge.textContent = 'Utama';
+                item.appendChild(newBadge);
+            }
+        } else {
+            if (badge) {
+                badge.remove();
+            }
+        }
+    });
+}
+
+function removeNewImage(imageId) {
+    const index = uploadedImages.findIndex(img => img.id === imageId);
+    if (index > -1) {
+        uploadedImages.splice(index, 1);
+        
+        // Remove from DOM
+        const item = document.querySelector(`#imagePreviewGrid [data-image-id="${imageId}"]`).parentNode;
+        item.remove();
+        
+        // Hide container if no images
+        if (uploadedImages.length === 0) {
+            document.getElementById('imagePreviewContainer').classList.add('d-none');
+        }
+    }
+}
+
+function updateExistingImageOrder() {
+    const items = document.querySelectorAll('#existingImagesGrid .image-preview-item');
+    const imageIds = Array.from(items).map(item => item.dataset.imageId);
+    
+    // Send AJAX request to update order
+    fetch('/admin/products/images/reorder', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            image_ids: imageIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Image order updated successfully');
+        } else {
+            console.error('Failed to update image order:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error updating image order:', error);
+    });
+}
+
+function updateNewImageOrder() {
+    const items = document.querySelectorAll('#imagePreviewGrid .image-preview-item');
+    const newOrder = [];
+    
+    items.forEach((item, index) => {
+        const imageId = item.dataset.imageId;
+        const imageData = uploadedImages.find(img => img.id === imageId);
+        if (imageData) {
+            imageData.sortOrder = index;
+            newOrder.push(imageData);
+        }
+    });
+    
+    uploadedImages = newOrder;
+}
+
+// Form submission
+document.getElementById('editProductForm').addEventListener('submit', function(e) {
+    // Check if there are any images (existing or new)
+    const existingImages = document.querySelectorAll('#existingImagesGrid .image-preview-item');
+    const hasImages = existingImages.length > 0 || uploadedImages.length > 0;
+    
+    if (!hasImages) {
+        e.preventDefault();
+        Swal.fire({
+            icon: 'error',
+            title: 'Gambar Diperlukan',
+            text: 'Minimal 1 gambar produk harus ada'
+        });
+        return;
+    }
+    
+    // Create FormData with new images
+    const formData = new FormData(this);
+    
+    // Remove the original file input
+    formData.delete('product_images');
+    
+    // Add new images with proper names
+    uploadedImages.forEach((imageData, index) => {
+        formData.append(`product_images`, imageData.file);
+        formData.append(`image_primary`, imageData.isPrimary ? '1' : '0');
+        formData.append(`image_order`, imageData.sortOrder || index);
+    });
+    
+    // Submit form
+    this.submit();
+});
+
+// Delete product confirmation
+function deleteProduct(productId) {
+    Swal.fire({
+        title: 'Konfirmasi Hapus',
+        text: 'Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak dapat dibatalkan!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create and submit delete form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/admin/products/delete/${productId}`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
 
 // Real-time Product Preview
@@ -472,12 +887,6 @@ function resetForm() {
     }
 }
 
-// Delete Product
-function deleteProduct(productId) {
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    deleteModal.show();
-}
-
 // Duplicate Product
 function duplicateProduct() {
     if (confirm('Apakah Anda ingin menduplikasi produk ini?')) {
@@ -511,4 +920,93 @@ document.querySelectorAll('#editProductForm input, #editProductForm textarea, #e
     input.addEventListener('input', autoSave);
 });
 </script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+}
+
+.upload-area.dragover {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+}
+
+.upload-area:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.image-preview-item {
+    position: relative;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+.image-preview-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.image-preview-item:hover .image-preview-overlay {
+    opacity: 1;
+}
+
+.image-preview-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.primary-badge {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: #28a745;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.sort-handle {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: move;
+}
+
+.image-preview-item.primary {
+    border-color: #28a745;
+    border-width: 2px;
+}
+</style>
 {% endblock %} 
