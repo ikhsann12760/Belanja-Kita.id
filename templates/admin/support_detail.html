@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Tiket Support #{{ ticket.id }} - Belanja Kita.id{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-headset me-2"></i>Detail Tiket Support #{{ ticket.id }}
+        </h1>
+        <a href="{{ url_for('admin_support') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Kembali
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Informasi Tiket</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Subjek:</strong> {{ ticket.subject }}</p>
+                            <p><strong>Kategori:</strong> 
+                                <span class="badge bg-info">{{ ticket.category.title() }}</span>
+                            </p>
+                            <p><strong>Prioritas:</strong> 
+                                <span class="badge bg-{{ 'success' if ticket.priority == 'low' else 'warning' if ticket.priority == 'medium' else 'danger' if ticket.priority == 'high' else 'dark' }}">
+                                    {{ ticket.priority.title() }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-{{ 'warning' if ticket.status == 'open' else 'info' if ticket.status == 'in_progress' else 'success' if ticket.status == 'resolved' else 'secondary' }}">
+                                    {{ ticket.status.replace('_', ' ').title() }}
+                                </span>
+                            </p>
+                            <p><strong>Dibuat:</strong> {{ ticket.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                            <p><strong>Update Terakhir:</strong> {{ ticket.updated_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>Pesan Customer</h6>
+                        <div class="bg-light p-3 rounded">
+                            {{ ticket.message }}
+                        </div>
+                    </div>
+
+                    {% if ticket.admin_notes %}
+                    <div class="mb-3">
+                        <h6>Catatan Admin</h6>
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            {{ ticket.admin_notes }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Customer</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Username:</strong> {{ ticket.user.username }}</p>
+                    <p><strong>Email:</strong> {{ ticket.user.email }}</p>
+                    <a href="{{ url_for('admin_customer_detail', customer_id=ticket.user.id) }}" 
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user me-1"></i>Lihat Profil
+                    </a>
+                </div>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Update Status</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_support_ticket', ticket_id=ticket.id) }}">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>Terbuka</option>
+                                <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>Dalam Proses</option>
+                                <option value="resolved" {% if ticket.status == 'resolved' %}selected{% endif %}>Selesai</option>
+                                <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>Ditutup</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="admin_notes" class="form-label">Catatan Admin</label>
+                            <textarea class="form-control" id="admin_notes" name="admin_notes" rows="4">{{ ticket.admin_notes or '' }}</textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="fas fa-save me-2"></i>Update Status
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
+{% endblock %} 

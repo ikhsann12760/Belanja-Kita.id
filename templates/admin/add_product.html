@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}Tambah Produk - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Tambah Produk Baru</h1>
+        <a href="{{ url_for('admin_products') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Kembali ke Daftar Produk
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informasi Produk</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="addProductForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Nama Produk <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                    <div class="form-text">Masukkan nama produk yang jelas dan deskriptif</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="category_id" class="form-label">Kategori <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="category_id" name="category_id" required>
+                                        <option value="">Pilih Kategori</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Deskripsi Produk <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+                            <div class="form-text">Jelaskan detail produk, fitur, dan spesifikasi</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="price" class="form-label">Harga (Rp) <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">Rp</span>
+                                        <input type="number" class="form-control" id="price" name="price" min="0" step="100" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="stock" class="form-label">Stok <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="stock" name="stock" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Product Information -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">Informasi Tambahan</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="brand" class="form-label">Brand</label>
+                                            <input type="text" class="form-control" id="brand" name="brand" placeholder="Contoh: Samsung, Nike, dll">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="model" class="form-label">Model</label>
+                                            <input type="text" class="form-control" id="model" name="model" placeholder="Contoh: Galaxy A54, Air Max, dll">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="color" class="form-label">Warna</label>
+                                            <input type="text" class="form-control" id="color" name="color" placeholder="Contoh: Hitam, Putih, Merah">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="material" class="form-label">Material</label>
+                                            <input type="text" class="form-control" id="material" name="material" placeholder="Contoh: Plastik, Kain, Logam">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="weight" class="form-label">Berat (gram)</label>
+                                            <input type="number" class="form-control" id="weight" name="weight" min="0" step="0.01" placeholder="Contoh: 500">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="dimensions" class="form-label">Dimensi (cm)</label>
+                                            <input type="text" class="form-control" id="dimensions" name="dimensions" placeholder="Contoh: 10x5x2">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="warranty" class="form-label">Garansi</label>
+                                    <input type="text" class="form-control" id="warranty" name="warranty" placeholder="Contoh: 1 tahun, 6 bulan">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="tags" class="form-label">Tags</label>
+                                    <input type="text" class="form-control" id="tags" name="tags" placeholder="Contoh: smartphone, android, kamera (pisahkan dengan koma)">
+                                    <div class="form-text">Tags membantu dalam pencarian produk</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SEO Information -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">Informasi SEO</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="meta_title" class="form-label">Meta Title</label>
+                                    <input type="text" class="form-control" id="meta_title" name="meta_title" maxlength="200">
+                                    <div class="form-text">Judul yang akan muncul di hasil pencarian (maksimal 200 karakter)</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="meta_description" class="form-label">Meta Description</label>
+                                    <textarea class="form-control" id="meta_description" name="meta_description" rows="3"></textarea>
+                                    <div class="form-text">Deskripsi singkat untuk SEO (akan muncul di hasil pencarian)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product Settings -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">Pengaturan Produk</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="min_stock" class="form-label">Stok Minimum</label>
+                                            <input type="number" class="form-control" id="min_stock" name="min_stock" min="0" value="5">
+                                            <div class="form-text">Akan muncul peringatan jika stok di bawah angka ini</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured">
+                                                <label class="form-check-label" for="is_featured">
+                                                    Produk Unggulan
+                                                </label>
+                                            </div>
+                                            <div class="form-text">Produk unggulan akan ditampilkan di halaman utama</div>
+                                        </div>
+                                        
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                            <label class="form-check-label" for="is_active">
+                                                Produk Aktif
+                                            </label>
+                                        </div>
+                                        <div class="form-text">Produk tidak aktif tidak akan ditampilkan di toko</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="image" class="form-label">Gambar Produk</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                            <div class="form-text">Format: JPG, PNG, GIF. Maksimal 16MB</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div id="imagePreview" class="d-none">
+                                <img id="previewImg" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px;">
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeImage()">
+                                    <i class="fas fa-times"></i> Hapus
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Simpan Produk
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                <i class="fas fa-undo me-2"></i>Reset
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Preview Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Preview Produk</h6>
+                </div>
+                <div class="card-body">
+                    <div id="productPreview">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-image fa-3x mb-3"></i>
+                            <p>Preview produk akan muncul di sini</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips Card -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Tips Menambah Produk</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Gunakan nama produk yang jelas dan mudah dicari
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Tulis deskripsi yang detail dan informatif
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Upload gambar berkualitas tinggi
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Set harga yang kompetitif
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Periksa stok secara berkala
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Image Preview
+document.getElementById('image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        if (file.size > 16 * 1024 * 1024) { // 16MB
+            alert('Ukuran file terlalu besar. Maksimal 16MB.');
+            this.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').classList.remove('d-none');
+            updateProductPreview();
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function removeImage() {
+    document.getElementById('image').value = '';
+    document.getElementById('imagePreview').classList.add('d-none');
+    updateProductPreview();
+}
+
+// Real-time Product Preview
+function updateProductPreview() {
+    const name = document.getElementById('name').value || 'Nama Produk';
+    const price = document.getElementById('price').value || '0';
+    const description = document.getElementById('description').value || 'Deskripsi produk akan muncul di sini...';
+    const image = document.getElementById('previewImg').src;
+    
+    const preview = document.getElementById('productPreview');
+    
+    if (name !== 'Nama Produk' || price !== '0' || description !== 'Deskripsi produk akan muncul di sini...') {
+        preview.innerHTML = `
+            <div class="card">
+                ${image ? `<img src="${image}" class="card-img-top" alt="${name}" style="height: 200px; object-fit: cover;">` : 
+                `<div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="fas fa-image fa-3x"></i>
+                </div>`}
+                <div class="card-body">
+                    <h6 class="card-title">${name}</h6>
+                    <p class="card-text text-muted">${description.substring(0, 100)}${description.length > 100 ? '...' : ''}</p>
+                    <h5 class="text-primary">Rp ${parseInt(price).toLocaleString()}</h5>
+                    <span class="badge bg-success">Tersedia</span>
+                </div>
+            </div>
+        `;
+    } else {
+        preview.innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-image fa-3x mb-3"></i>
+                <p>Preview produk akan muncul di sini</p>
+            </div>
+        `;
+    }
+}
+
+// Form Validation
+document.getElementById('addProductForm').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    const category = document.getElementById('category_id').value;
+    const description = document.getElementById('description').value.trim();
+    const price = document.getElementById('price').value;
+    const stock = document.getElementById('stock').value;
+
+    if (!name) {
+        e.preventDefault();
+        alert('Nama produk tidak boleh kosong!');
+        return;
+    }
+
+    if (!category) {
+        e.preventDefault();
+        alert('Pilih kategori produk!');
+        return;
+    }
+
+    if (!description) {
+        e.preventDefault();
+        alert('Deskripsi produk tidak boleh kosong!');
+        return;
+    }
+
+    if (!price || price <= 0) {
+        e.preventDefault();
+        alert('Harga harus lebih dari 0!');
+        return;
+    }
+
+    if (!stock || stock < 0) {
+        e.preventDefault();
+        alert('Stok tidak boleh negatif!');
+        return;
+    }
+});
+
+// Real-time preview updates
+document.getElementById('name').addEventListener('input', updateProductPreview);
+document.getElementById('price').addEventListener('input', updateProductPreview);
+document.getElementById('description').addEventListener('input', updateProductPreview);
+
+// Reset Form
+function resetForm() {
+    if (confirm('Apakah Anda yakin ingin mereset form?')) {
+        document.getElementById('addProductForm').reset();
+        document.getElementById('imagePreview').classList.add('d-none');
+        updateProductPreview();
+    }
+}
+
+// Auto-save draft (optional)
+let autoSaveTimer;
+function autoSave() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        const formData = new FormData(document.getElementById('addProductForm'));
+        // Auto-save logic can be implemented here
+        console.log('Auto-saving draft...');
+    }, 3000);
+}
+
+// Add auto-save to form inputs
+document.querySelectorAll('#addProductForm input, #addProductForm textarea, #addProductForm select').forEach(input => {
+    input.addEventListener('input', autoSave);
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="fas fa-credit-card"></i> Checkout</h2>
+    
+    <form method="POST" id="checkoutForm">
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Order Summary -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Detail Pesanan</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for item in cart_items %}
+                        <div class="row mb-3 border-bottom pb-3">
+                            <div class="col-md-2">
+                                {% if item.product.image_url %}
+                                    <img src="{{ url_for('static', filename=item.product.image_url) }}" 
+                                         class="img-fluid rounded" alt="{{ item.product.name }}">
+                                {% else %}
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                         style="height: 80px;">
+                                        <i class="fas fa-image text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <h6>{{ item.product.name }}</h6>
+                                <p class="text-muted small">Qty: {{ item.quantity }}</p>
+                                <p class="text-success fw-bold">Rp {{ "{:,.0f}".format(item.product.price) }} x {{ item.quantity }}</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <strong>Rp {{ "{:,.0f}".format(item.subtotal) }}</strong>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Shipping Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-shipping-fast"></i> Informasi Pengiriman</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="recipient_name" class="form-label">Nama Penerima *</label>
+                                <input type="text" class="form-control" id="recipient_name" name="recipient_name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="recipient_phone" class="form-label">Nomor Telepon *</label>
+                                <input type="tel" class="form-control" id="recipient_phone" name="recipient_phone" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="shipping_address" class="form-label">Alamat Lengkap *</label>
+                            <textarea class="form-control" id="shipping_address" name="shipping_address" rows="3" required 
+                                      placeholder="Jl. Contoh No. 123, RT/RW 001/002"></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="shipping_city" class="form-label">Kota *</label>
+                                <input type="text" class="form-control" id="shipping_city" name="shipping_city" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="shipping_postal_code" class="form-label">Kode Pos *</label>
+                                <input type="text" class="form-control" id="shipping_postal_code" name="shipping_postal_code" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="shipping_province" class="form-label">Provinsi *</label>
+                                <select class="form-select" id="shipping_province" name="shipping_province" required>
+                                    <option value="">Pilih Provinsi</option>
+                                    {% for province in provinces %}
+                                    <option value="{{ province }}">{{ province }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="courier" class="form-label">Ekspedisi *</label>
+                            <select class="form-select" id="courier" name="courier" required>
+                                <option value="">Pilih Ekspedisi</option>
+                                {% for courier in couriers %}
+                                <option value="{{ courier.code }}" data-description="{{ courier.description }}">
+                                    {{ courier.name }} - {{ courier.description }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text" id="courierDescription"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Catatan Tambahan</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2" 
+                                      placeholder="Catatan untuk kurir atau informasi tambahan"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Method -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-credit-card"></i> Metode Pembayaran</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Pilih Metode Pembayaran *</label>
+                            {% for method in payment_methods %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="payment_method" 
+                                       id="payment_{{ method.code }}" value="{{ method.code }}" required>
+                                <label class="form-check-label" for="payment_{{ method.code }}">
+                                    <strong>{{ method.name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ method.description }}</small>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Informasi Pembayaran:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Untuk pembayaran COD, Anda akan membayar saat barang diterima</li>
+                                <li>Untuk transfer bank, kami akan mengirimkan nomor rekening setelah pesanan dikonfirmasi</li>
+                                <li>Untuk e-wallet dan QRIS, pembayaran akan diproses secara otomatis</li>
+                                <li>Untuk kartu kredit/debit, pembayaran akan diproses melalui payment gateway</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Ringkasan Pembayaran</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span>Rp {{ "{:,.0f}".format(subtotal) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Ongkos Kirim:</span>
+                            <span id="shippingCost">Rp 0</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Total:</strong>
+                            <strong class="text-success" id="totalAmount">Rp {{ "{:,.0f}".format(subtotal) }}</strong>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="checkoutBtn">
+                                <i class="fas fa-credit-card"></i> Bayar Sekarang
+                            </button>
+                            <a href="{{ url_for('cart') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Kembali ke Keranjang
+                            </a>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> 
+                                Pembayaran akan diproses setelah pesanan dikonfirmasi.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Shipping cost calculation
+function calculateShippingCost() {
+    const courier = document.getElementById('courier').value;
+    const province = document.getElementById('shipping_province').value;
+    const subtotal = {{ subtotal }};
+    
+    if (courier && province) {
+        // Simulate API call for shipping cost
+        const baseCosts = {
+            'jne': 15000,
+            'sicepat': 12000,
+            'jnt': 13000,
+            'pos': 10000,
+            'ninja': 14000
+        };
+        
+        const provinceCosts = {
+            'DKI Jakarta': 0,
+            'Jawa Barat': 5000,
+            'Jawa Tengah': 8000,
+            'Jawa Timur': 10000,
+            'Banten': 3000,
+            'Sumatera Utara': 15000,
+            'Sumatera Barat': 12000,
+            'Sumatera Selatan': 10000,
+            'Lampung': 8000,
+            'Kalimantan Barat': 20000,
+            'Kalimantan Tengah': 18000,
+            'Kalimantan Selatan': 16000,
+            'Kalimantan Timur': 22000,
+            'Sulawesi Utara': 25000,
+            'Sulawesi Tengah': 22000,
+            'Sulawesi Selatan': 20000,
+            'Sulawesi Tenggara': 23000,
+            'Bali': 12000,
+            'Nusa Tenggara Barat': 15000,
+            'Nusa Tenggara Timur': 18000,
+            'Maluku': 30000,
+            'Papua': 35000
+        };
+        
+        const baseCost = baseCosts[courier] || 15000;
+        const provinceCost = provinceCosts[province] || 15000;
+        const shippingCost = baseCost + provinceCost;
+        
+        document.getElementById('shippingCost').textContent = `Rp ${shippingCost.toLocaleString()}`;
+        document.getElementById('totalAmount').textContent = `Rp ${(subtotal + shippingCost).toLocaleString()}`;
+    }
+}
+
+// Event listeners
+document.getElementById('courier').addEventListener('change', function() {
+    calculateShippingCost();
+    
+    // Show courier description
+    const selectedOption = this.options[this.selectedIndex];
+    const description = selectedOption.getAttribute('data-description');
+    document.getElementById('courierDescription').textContent = description || '';
+});
+
+document.getElementById('shipping_province').addEventListener('change', calculateShippingCost);
+
+// Form validation
+document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+    const requiredFields = ['recipient_name', 'recipient_phone', 'shipping_address', 'shipping_city', 'shipping_postal_code', 'shipping_province', 'courier'];
+    
+    for (let field of requiredFields) {
+        const element = document.getElementById(field);
+        if (!element.value.trim()) {
+            e.preventDefault();
+            alert('Mohon lengkapi semua field yang wajib diisi!');
+            element.focus();
+            return;
+        }
+    }
+    
+    // Check payment method
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+    if (!paymentMethod) {
+        e.preventDefault();
+        alert('Mohon pilih metode pembayaran!');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = document.getElementById('checkoutBtn');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+    submitBtn.disabled = true;
+});
+</script>
+{% endblock %} 

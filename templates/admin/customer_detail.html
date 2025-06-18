@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Customer - {{ customer.username }} - Belanja Kita.id{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-user-circle me-2"></i>Detail Customer: {{ customer.username }}
+        </h1>
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ url_for('toggle_customer_status', customer_id=customer.id) }}" style="display: inline;">
+                <button type="submit" class="btn btn-{{ 'danger' if customer.is_active else 'success' }}" 
+                        onclick="return confirm('Apakah Anda yakin ingin mengubah status customer ini?')">
+                    <i class="fas fa-{{ 'ban' if customer.is_active else 'check' }} me-2"></i>
+                    {{ 'Nonaktifkan' if customer.is_active else 'Aktifkan' }}
+                </button>
+            </form>
+            <a href="{{ url_for('admin_customers') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Kembali
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Customer Information -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>Informasi Customer
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-lg mx-auto mb-3">
+                            <i class="fas fa-user-circle fa-5x text-primary"></i>
+                        </div>
+                        <h4>{{ customer.username }}</h4>
+                        <p class="text-muted">{{ customer.email }}</p>
+                        <span class="badge bg-{{ 'success' if customer.is_active else 'danger' }} fs-6">
+                            {{ 'Aktif' if customer.is_active else 'Nonaktif' }}
+                        </span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="mb-1"><strong>Bergabung:</strong></p>
+                            <p class="text-muted">{{ customer.created_at.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1"><strong>Total Pesanan:</strong></p>
+                            <p class="text-muted">{{ orders|length }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if customer.full_name or customer.phone %}
+                    <hr>
+                    <h6>Informasi Tambahan</h6>
+                    {% if customer.full_name %}
+                    <p class="mb-1"><strong>Nama Lengkap:</strong> {{ customer.full_name }}</p>
+                    {% endif %}
+                    {% if customer.phone %}
+                    <p class="mb-1"><strong>Telepon:</strong> {{ customer.phone }}</p>
+                    {% endif %}
+                    {% if customer.address %}
+                    <p class="mb-1"><strong>Alamat:</strong> {{ customer.address }}</p>
+                    {% endif %}
+                    {% if customer.city %}
+                    <p class="mb-1"><strong>Kota:</strong> {{ customer.city }}</p>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders and Support Tabs -->
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="customerTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab">
+                                <i class="fas fa-shopping-cart me-2"></i>Pesanan ({{ orders|length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="support-tab" data-bs-toggle="tab" data-bs-target="#support" type="button" role="tab">
+                                <i class="fas fa-headset me-2"></i>Support ({{ support_tickets|length }})
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="customerTabsContent">
+                        <!-- Orders Tab -->
+                        <div class="tab-pane fade show active" id="orders" role="tabpanel">
+                            {% if orders %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Order Number</th>
+                                                <th>Tanggal</th>
+                                                <th>Total</th>
+                                                <th>Status</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for order in orders %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ order.order_number }}</strong>
+                                                </td>
+                                                <td>{{ order.created_at.strftime('%d/%m/%Y') }}</td>
+                                                <td>Rp {{ "{:,.0f}".format(order.total_amount) }}</td>
+                                                <td>
+                                                    {% set status_colors = {'pending': 'warning', 'processing': 'info', 'shipped': 'primary', 'delivered': 'success', 'cancelled': 'danger'} %}
+                                                    <span class="badge bg-{{ status_colors.get(order.status, 'secondary') }}">
+                                                        {{ order.status.title() }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('admin_order_detail', order_id=order.id) }}" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye me-1"></i>Detail
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Belum ada pesanan</h5>
+                                    <p class="text-muted">Customer ini belum melakukan pesanan apapun</p>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Support Tab -->
+                        <div class="tab-pane fade" id="support" role="tabpanel">
+                            {% if support_tickets %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Subjek</th>
+                                                <th>Kategori</th>
+                                                <th>Status</th>
+                                                <th>Dibuat</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for ticket in support_tickets %}
+                                            <tr>
+                                                <td>#{{ ticket.id }}</td>
+                                                <td>
+                                                    <strong>{{ ticket.subject }}</strong>
+                                                    <br><small class="text-muted">{{ ticket.message[:50] }}{% if ticket.message|length > 50 %}...{% endif %}</small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ ticket.category.title() }}</span>
+                                                </td>
+                                                <td>
+                                                    {% set status_colors = {'open': 'warning', 'in_progress': 'info', 'resolved': 'success', 'closed': 'secondary'} %}
+                                                    <span class="badge bg-{{ status_colors.get(ticket.status, 'secondary') }}">
+                                                        {{ ticket.status.replace('_', ' ').title() }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ ticket.created_at.strftime('%d/%m/%Y') }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('admin_support_detail', ticket_id=ticket.id) }}" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye me-1"></i>Detail
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-headset fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Belum ada tiket support</h5>
+                                    <p class="text-muted">Customer ini belum membuat tiket support apapun</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

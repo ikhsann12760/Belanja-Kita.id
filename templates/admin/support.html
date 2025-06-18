@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Support - Belanja Kita.id{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Customer Support</h1>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="exportSupportTickets()">
+                <i class="fas fa-download me-2"></i>Export Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Tiket
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ support_tickets|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-ticket-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Tiket Terbuka
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ support_tickets|selectattr('status', 'equalto', 'open')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Dalam Proses
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ support_tickets|selectattr('status', 'equalto', 'in_progress')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Selesai
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ support_tickets|selectattr('status', 'equalto', 'resolved')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <select class="form-select" id="statusFilter" onchange="applyFilters()">
+                        <option value="all" {{ 'selected' if status_filter == 'all' }}>Semua Status</option>
+                        <option value="open" {{ 'selected' if status_filter == 'open' }}>Terbuka</option>
+                        <option value="in_progress" {{ 'selected' if status_filter == 'in_progress' }}>Dalam Proses</option>
+                        <option value="resolved" {{ 'selected' if status_filter == 'resolved' }}>Selesai</option>
+                        <option value="closed" {{ 'selected' if status_filter == 'closed' }}>Ditutup</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="priorityFilter" onchange="applyFilters()">
+                        <option value="all" {{ 'selected' if priority_filter == 'all' }}>Semua Prioritas</option>
+                        <option value="low" {{ 'selected' if priority_filter == 'low' }}>Rendah</option>
+                        <option value="medium" {{ 'selected' if priority_filter == 'medium' }}>Sedang</option>
+                        <option value="high" {{ 'selected' if priority_filter == 'high' }}>Tinggi</option>
+                        <option value="urgent" {{ 'selected' if priority_filter == 'urgent' }}>Urgent</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="categoryFilter" onchange="applyFilters()">
+                        <option value="all" {{ 'selected' if category_filter == 'all' }}>Semua Kategori</option>
+                        <option value="complaint" {{ 'selected' if category_filter == 'complaint' }}>Keluhan</option>
+                        <option value="question" {{ 'selected' if category_filter == 'question' }}>Pertanyaan</option>
+                        <option value="suggestion" {{ 'selected' if category_filter == 'suggestion' }}>Saran</option>
+                        <option value="technical" {{ 'selected' if category_filter == 'technical' }}>Teknis</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100" onclick="resetFilters()">
+                        <i class="fas fa-refresh me-2"></i>Reset Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Support Tickets Table -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Daftar Tiket Support</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Subjek</th>
+                            <th>Kategori</th>
+                            <th>Prioritas</th>
+                            <th>Status</th>
+                            <th>Dibuat</th>
+                            <th>Terakhir Update</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in support_tickets %}
+                        <tr>
+                            <td>#{{ ticket.id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2">
+                                        <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ ticket.user.username }}</strong>
+                                        <br><small class="text-muted">{{ ticket.user.email }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{{ ticket.subject }}</strong>
+                                <br><small class="text-muted">{{ ticket.message[:100] }}{% if ticket.message|length > 100 %}...{% endif %}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ ticket.category.title() }}</span>
+                            </td>
+                            <td>
+                                {% set priority_colors = {'low': 'success', 'medium': 'warning', 'high': 'danger', 'urgent': 'dark'} %}
+                                <span class="badge bg-{{ priority_colors.get(ticket.priority, 'secondary') }}">
+                                    {{ ticket.priority.title() }}
+                                </span>
+                            </td>
+                            <td>
+                                {% set status_colors = {'open': 'warning', 'in_progress': 'info', 'resolved': 'success', 'closed': 'secondary'} %}
+                                <span class="badge bg-{{ status_colors.get(ticket.status, 'secondary') }}">
+                                    {{ ticket.status.replace('_', ' ').title() }}
+                                </span>
+                            </td>
+                            <td>{{ ticket.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ ticket.updated_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <a href="{{ url_for('admin_support_detail', ticket_id=ticket.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>Detail
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function applyFilters() {
+    const status = document.getElementById('statusFilter').value;
+    const priority = document.getElementById('priorityFilter').value;
+    const category = document.getElementById('categoryFilter').value;
+    
+    let url = window.location.pathname + '?';
+    if (status !== 'all') url += `status=${status}&`;
+    if (priority !== 'all') url += `priority=${priority}&`;
+    if (category !== 'all') url += `category=${category}&`;
+    
+    window.location.href = url;
+}
+
+function resetFilters() {
+    window.location.href = window.location.pathname;
+}
+
+function exportSupportTickets() {
+    // Implementation for exporting support tickets
+    alert('Fitur export akan segera tersedia!');
+}
+</script>
+{% endblock %} 

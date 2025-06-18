@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice #{{ order.id }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: white;
+        }
+        .invoice-header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .invoice-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .invoice-number {
+            font-size: 18px;
+            color: #666;
+        }
+        .row {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .col-6 {
+            flex: 1;
+            padding: 0 10px;
+        }
+        .col-12 {
+            flex: 1;
+            padding: 0 10px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .info-item {
+            margin-bottom: 5px;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-pending { background-color: #fff3cd; color: #856404; }
+        .status-processing { background-color: #d1ecf1; color: #0c5460; }
+        .status-shipped { background-color: #cce5ff; color: #004085; }
+        .status-delivered { background-color: #d4edda; color: #155724; }
+        .status-cancelled { background-color: #f8d7da; color: #721c24; }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            🖨️ Print Invoice
+        </button>
+        <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+            ❌ Tutup
+        </button>
+    </div>
+
+    <div class="invoice-header">
+        <div class="invoice-title">E-COMMERCE STORE</div>
+        <div class="invoice-number">INVOICE #{{ order.id }}</div>
+        <div style="margin-top: 10px;">
+            <span class="status-badge status-{{ order.status }}">
+                {{ order.status|title }}
+            </span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-6">
+            <div class="section-title">Informasi Customer</div>
+            <div class="info-item">
+                <span class="info-label">Nama:</span> {{ order.customer.username }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Email:</span> {{ order.customer.email }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Tanggal Pesanan:</span> {{ order.created_at.strftime('%d %B %Y %H:%M') }}
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="section-title">Informasi Pengiriman</div>
+            <div class="info-item">
+                <span class="info-label">Penerima:</span> {{ order.recipient_name }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Telepon:</span> {{ order.recipient_phone }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Ekspedisi:</span> {{ order.courier|upper }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Metode Pembayaran:</span> {{ order.payment_method|upper }}
+            </div>
+            {% if order.tracking_number %}
+            <div class="info-item">
+                <span class="info-label">No. Resi:</span> {{ order.tracking_number }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="section-title">Alamat Pengiriman</div>
+        <div class="info-item">
+            {{ order.shipping_address }}<br>
+            {{ order.shipping_city }}, {{ order.shipping_province }} {{ order.shipping_postal_code }}
+        </div>
+    </div>
+
+    <div class="section-title">Detail Item</div>
+    <table>
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Produk</th>
+                <th>Harga</th>
+                <th>Qty</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.product.name }}</td>
+                <td>Rp {{ "{:,.0f}".format(item.price) }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>Rp {{ "{:,.0f}".format(item.price * item.quantity) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" style="text-align: right;"><strong>Subtotal:</strong></td>
+                <td>Rp {{ "{:,.0f}".format(order.total_amount - order.shipping_cost) }}</td>
+            </tr>
+            <tr>
+                <td colspan="4" style="text-align: right;"><strong>Ongkos Kirim:</strong></td>
+                <td>Rp {{ "{:,.0f}".format(order.shipping_cost) }}</td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="4" style="text-align: right;"><strong>TOTAL:</strong></td>
+                <td><strong>Rp {{ "{:,.0f}".format(order.total_amount) }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    {% if order.notes %}
+    <div class="col-12">
+        <div class="section-title">Catatan</div>
+        <div class="info-item">{{ order.notes }}</div>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Terima kasih telah berbelanja di E-Commerce Store kami!</p>
+        <p>Untuk pertanyaan atau bantuan, silakan hubungi customer service kami.</p>
+        <p>Invoice ini dibuat secara otomatis pada {{ order.created_at.strftime('%d %B %Y %H:%M') }}</p>
+    </div>
+</body>
+</html> 

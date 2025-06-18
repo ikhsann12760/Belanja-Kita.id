@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Support - Belanja Kita.id{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-headset text-primary me-3"></i>
+                    Customer Support
+                </h1>
+                <p class="lead text-muted">Kami siap membantu Anda dengan pertanyaan, keluhan, atau saran</p>
+            </div>
+
+            <!-- Support Form -->
+            <div class="card shadow-lg mb-5">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Buat Tiket Support Baru
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="subject" class="form-label">Subjek <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="subject" name="subject" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label">Kategori <span class="text-danger">*</span></label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">Pilih kategori</option>
+                                    <option value="complaint">Keluhan</option>
+                                    <option value="question">Pertanyaan</option>
+                                    <option value="suggestion">Saran</option>
+                                    <option value="technical">Masalah Teknis</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="priority" class="form-label">Prioritas</label>
+                                <select class="form-select" id="priority" name="priority">
+                                    <option value="low">Rendah</option>
+                                    <option value="medium" selected>Sedang</option>
+                                    <option value="high">Tinggi</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Pesan <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="message" name="message" rows="5" required 
+                                      placeholder="Jelaskan detail masalah atau pertanyaan Anda..."></textarea>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Kirim Tiket
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Support Tickets History -->
+            <div class="card shadow-lg">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Riwayat Tiket Support
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if support_tickets %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Subjek</th>
+                                        <th>Kategori</th>
+                                        <th>Status</th>
+                                        <th>Dibuat</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ticket in support_tickets %}
+                                    <tr>
+                                        <td>#{{ ticket.id }}</td>
+                                        <td>
+                                            <strong>{{ ticket.subject }}</strong>
+                                            <br><small class="text-muted">{{ ticket.message[:50] }}{% if ticket.message|length > 50 %}...{% endif %}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ ticket.category.title() }}</span>
+                                        </td>
+                                        <td>
+                                            {% set status_colors = {'open': 'warning', 'in_progress': 'info', 'resolved': 'success', 'closed': 'secondary'} %}
+                                            <span class="badge bg-{{ status_colors.get(ticket.status, 'secondary') }}">
+                                                {{ ticket.status.replace('_', ' ').title() }}
+                                            </span>
+                                        </td>
+                                        <td>{{ ticket.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                        <td>
+                                            <a href="{{ url_for('support_ticket_detail', ticket_id=ticket.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i>Detail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Belum ada tiket support</h5>
+                            <p class="text-muted">Buat tiket support pertama Anda di atas</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Support Information -->
+            <div class="row mt-5">
+                <div class="col-md-4">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-clock fa-2x text-primary mb-3"></i>
+                            <h5>Respon Cepat</h5>
+                            <p class="text-muted">Tim kami akan merespon dalam 24 jam</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-shield-alt fa-2x text-success mb-3"></i>
+                            <h5>Keamanan Data</h5>
+                            <p class="text-muted">Data Anda aman dan terjaga kerahasiaannya</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-users fa-2x text-info mb-3"></i>
+                            <h5>Tim Support</h5>
+                            <p class="text-muted">Tim berpengalaman siap membantu Anda</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-resize textarea
+document.getElementById('message').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const subject = document.getElementById('subject').value.trim();
+    const message = document.getElementById('message').value.trim();
+    const category = document.getElementById('category').value;
+    
+    if (!subject || !message || !category) {
+        e.preventDefault();
+        alert('Mohon lengkapi semua field yang wajib diisi!');
+        return false;
+    }
+});
+</script>
+{% endblock %} 

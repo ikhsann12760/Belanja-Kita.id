@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Pesanan #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4>Detail Pesanan {{ order.order_number }}</h4>
+                    <span class="badge 
+                        {% if order.status == 'pending' %}bg-warning
+                        {% elif order.status == 'processing' %}bg-info
+                        {% elif order.status == 'shipped' %}bg-primary
+                        {% elif order.status == 'delivered' %}bg-success
+                        {% elif order.status == 'cancelled' %}bg-danger
+                        {% else %}bg-secondary{% endif %} fs-6">
+                        {{ order.status|title }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Order Number:</strong><br>
+                            <span class="fw-bold text-primary">{{ order.order_number }}</span></p>
+                            <p><strong>Tanggal Pesanan:</strong><br>
+                            {{ order.created_at.strftime('%d %B %Y %H:%M') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Total Pembayaran:</strong><br>
+                            <span class="text-success fw-bold">Rp {{ "{:,.0f}".format(order.total_amount) }}</span></p>
+                            <p><strong>Metode Pembayaran:</strong><br>
+                            <span class="fw-bold text-info">{{ order.payment_method|upper }}</span></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Shipping Information -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user"></i> Informasi Penerima</h6>
+                            <p class="mb-1"><strong>Nama:</strong> {{ order.recipient_name }}</p>
+                            <p class="mb-1"><strong>Telepon:</strong> {{ order.recipient_phone }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-shipping-fast"></i> Informasi Pengiriman</h6>
+                            <p class="mb-1"><strong>Ekspedisi:</strong> {{ order.courier|upper }}</p>
+                            <p class="mb-1"><strong>Ongkos Kirim:</strong> Rp {{ "{:,.0f}".format(order.shipping_cost) }}</p>
+                            {% if order.tracking_number %}
+                            <p class="mb-1"><strong>No. Resi:</strong> 
+                                <span class="fw-bold text-info">{{ order.tracking_number }}</span>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyTrackingNumber('{{ order.tracking_number }}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6><i class="fas fa-map-marker-alt"></i> Alamat Pengiriman</h6>
+                        <p class="mb-1">{{ order.shipping_address }}</p>
+                        <p class="mb-1">{{ order.shipping_city }}, {{ order.shipping_province }} {{ order.shipping_postal_code }}</p>
+                    </div>
+                    
+                    {% if order.notes %}
+                    <div class="mb-3">
+                        <h6><i class="fas fa-sticky-note"></i> Catatan</h6>
+                        <p class="mb-1">{{ order.notes }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <h5>Item Pesanan:</h5>
+                    {% for item in order.items %}
+                    <div class="row mb-3 border-bottom pb-3">
+                        <div class="col-md-2">
+                            {% if item.product.image_url %}
+                                <img src="{{ url_for('static', filename=item.product.image_url) }}" 
+                                     class="img-fluid rounded" alt="{{ item.product.name }}">
+                            {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                     style="height: 80px;">
+                                    <i class="fas fa-image text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6>{{ item.product.name }}</h6>
+                            <p class="text-muted small">{{ item.product.description[:100] }}...</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <p class="mb-1">Qty: {{ item.quantity }}</p>
+                            <p class="mb-1">Harga: Rp {{ "{:,.0f}".format(item.price) }}</p>
+                            <p class="fw-bold">Subtotal: Rp {{ "{:,.0f}".format(item.price * item.quantity) }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Status Pesanan</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6>Pesanan Dibuat</h6>
+                                <small class="text-muted">{{ order.created_at.strftime('%d %B %Y %H:%M') }}</small>
+                            </div>
+                        </div>
+                        
+                        {% if order.status != 'pending' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6>Sedang Diproses</h6>
+                                <small class="text-muted">Pesanan sedang diproses</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if order.status in ['shipped', 'delivered'] %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6>Dikirim</h6>
+                                <small class="text-muted">Pesanan sedang dikirim</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if order.status == 'delivered' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6>Terkirim</h6>
+                                <small class="text-muted">Pesanan telah diterima</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Aksi</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('order_history') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left"></i> Kembali ke Riwayat
+                        </a>
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -35px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: -29px;
+    top: 17px;
+    width: 2px;
+    height: 20px;
+    background-color: #dee2e6;
+}
+
+.timeline-content h6 {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.timeline-content small {
+    font-size: 12px;
+}
+</style>
+
+<script>
+function copyTrackingNumber(trackingNumber) {
+    navigator.clipboard.writeText(trackingNumber).then(function() {
+        // Show success message
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+        
+        setTimeout(function() {
+            button.innerHTML = originalHTML;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        alert('Gagal menyalin nomor resi');
+    });
+}
+</script>
+{% endblock %} 

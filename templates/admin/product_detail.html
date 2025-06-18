@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Detail Produk{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Detail Produk</h1>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_products') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Kembali ke Daftar Produk
+            </a>
+            <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn btn-warning">
+                <i class="fas fa-edit me-2"></i>Edit Produk
+            </a>
+            <button class="btn btn-danger" onclick="deleteProduct({{ product.id }})">
+                <i class="fas fa-trash me-2"></i>Hapus Produk
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Product Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informasi Produk</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>{{ product.name }}</h4>
+                            <p class="text-muted">{{ product.description }}</p>
+                            
+                            <div class="mb-3">
+                                <strong>Harga:</strong> 
+                                <span class="h5 text-primary">Rp {{ "{:,.0f}".format(product.price) }}</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Stok:</strong> 
+                                {% if product.stock > product.min_stock %}
+                                    <span class="badge bg-success">{{ product.stock }} unit</span>
+                                {% elif product.stock > 0 %}
+                                    <span class="badge bg-warning">{{ product.stock }} unit (Stok Menipis)</span>
+                                {% else %}
+                                    <span class="badge bg-danger">0 unit (Habis)</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Status:</strong> 
+                                {% if product.is_active %}
+                                    <span class="badge bg-success">Aktif</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Nonaktif</span>
+                                {% endif %}
+                                
+                                {% if product.is_featured %}
+                                    <span class="badge bg-warning ms-2">Unggulan</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            {% if product.image_url %}
+                            <img src="{{ url_for('static', filename=product.image_url) }}" 
+                                 alt="{{ product.name }}" 
+                                 class="img-fluid rounded" 
+                                 style="max-height: 300px; object-fit: cover;">
+                            {% else %}
+                            <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" 
+                                 style="height: 300px;">
+                                <i class="fas fa-image fa-3x"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informasi Tambahan</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>SKU:</strong></td>
+                                    <td><code>{{ product.sku or '-' }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Kategori:</strong></td>
+                                    <td><span class="badge bg-info">{{ product.category.name }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Brand:</strong></td>
+                                    <td>{{ product.brand or '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Model:</strong></td>
+                                    <td>{{ product.model or '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Warna:</strong></td>
+                                    <td>{{ product.color or '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Material:</strong></td>
+                                    <td>{{ product.material or '-' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Berat:</strong></td>
+                                    <td>{{ product.weight or '-' }} gram</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Dimensi:</strong></td>
+                                    <td>{{ product.dimensions or '-' }} cm</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Garansi:</strong></td>
+                                    <td>{{ product.warranty or '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Stok Minimum:</strong></td>
+                                    <td>{{ product.min_stock or 5 }} unit</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tags:</strong></td>
+                                    <td>
+                                        {% if product.tags %}
+                                            {% for tag in product.tags.split(',') %}
+                                                <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEO Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informasi SEO</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Meta Title:</strong>
+                        <p class="text-muted">{{ product.meta_title or 'Tidak diatur' }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Meta Description:</strong>
+                        <p class="text-muted">{{ product.meta_description or 'Tidak diatur' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Product Statistics -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Statistik Produk</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>ID Produk:</strong>
+                        </div>
+                        <div class="col-6">
+                            #{{ product.id }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Dibuat:</strong>
+                        </div>
+                        <div class="col-6">
+                            {{ product.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Terakhir Update:</strong>
+                        </div>
+                        <div class="col-6">
+                            {{ product.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Total Order:</strong>
+                        </div>
+                        <div class="col-6">
+                            {{ product.order_items|length }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Aksi Cepat</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="toggleFeatured({{ product.id }})">
+                            {% if product.is_featured %}
+                                <i class="fas fa-star me-2"></i>Hapus dari Unggulan
+                            {% else %}
+                                <i class="fas fa-star me-2"></i>Jadikan Unggulan
+                            {% endif %}
+                        </button>
+                        <button class="btn btn-outline-{{ 'danger' if product.is_active else 'success' }}" onclick="toggleStatus({{ product.id }})">
+                            {% if product.is_active %}
+                                <i class="fas fa-eye-slash me-2"></i>Nonaktifkan
+                            {% else %}
+                                <i class="fas fa-eye me-2"></i>Aktifkan
+                            {% endif %}
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="updateStock({{ product.id }})">
+                            <i class="fas fa-boxes me-2"></i>Update Stok
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Alert -->
+            {% if product.stock <= product.min_stock %}
+            <div class="card shadow border-warning">
+                <div class="card-header py-3 bg-warning text-white">
+                    <h6 class="m-0 font-weight-bold">⚠️ Peringatan Stok</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">Stok produk ini sudah mencapai batas minimum!</p>
+                    <p class="mb-0"><strong>Stok saat ini:</strong> {{ product.stock }} unit</p>
+                    <p class="mb-0"><strong>Stok minimum:</strong> {{ product.min_stock }} unit</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteProduct(productId) {
+    if (confirm('Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak dapat dibatalkan.')) {
+        fetch(`/admin/products/delete/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(response => {
+            if (response.ok) {
+                window.location.href = '/admin/products';
+            } else {
+                alert('Terjadi kesalahan saat menghapus produk');
+            }
+        });
+    }
+}
+
+function toggleFeatured(productId) {
+    // Implementation for toggling featured status
+    alert('Fitur ini akan segera tersedia');
+}
+
+function toggleStatus(productId) {
+    // Implementation for toggling product status
+    alert('Fitur ini akan segera tersedia');
+}
+
+function updateStock(productId) {
+    const newStock = prompt('Masukkan jumlah stok baru:');
+    if (newStock !== null && !isNaN(newStock)) {
+        // Implementation for updating stock
+        alert('Fitur ini akan segera tersedia');
+    }
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,588 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - E-Commerce Store{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Beranda</a></li>
+            <li class="breadcrumb-item"><a href="#">{{ product.category.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Product Images -->
+        <div class="col-lg-6 mb-4">
+            <div class="product-gallery">
+                <div class="main-image mb-3">
+                    {% if product.image_url %}
+                    <img src="{{ url_for('static', filename=product.image_url) }}" 
+                         class="img-fluid rounded" 
+                         alt="{{ product.name }}" 
+                         id="mainImage">
+                    {% else %}
+                    <img src="https://via.placeholder.com/600x400/6c757d/ffffff?text=No+Image" 
+                         class="img-fluid rounded" 
+                         alt="{{ product.name }}" 
+                         id="mainImage">
+                    {% endif %}
+                </div>
+                
+                <!-- Thumbnail Images (if multiple images) -->
+                <div class="thumbnail-images d-flex gap-2">
+                    {% if product.image_url %}
+                    <img src="{{ url_for('static', filename=product.image_url) }}" 
+                         class="img-thumbnail thumbnail-img" 
+                         alt="{{ product.name }}"
+                         onclick="changeMainImage(this.src)">
+                    {% endif %}
+                    <img src="https://via.placeholder.com/100x100/6c757d/ffffff?text=Img+2" 
+                         class="img-thumbnail thumbnail-img" 
+                         alt="Product Image 2"
+                         onclick="changeMainImage(this.src)">
+                    <img src="https://via.placeholder.com/100x100/6c757d/ffffff?text=Img+3" 
+                         class="img-thumbnail thumbnail-img" 
+                         alt="Product Image 3"
+                         onclick="changeMainImage(this.src)">
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="col-lg-6">
+            <div class="product-info">
+                <h1 class="h2 mb-3">{{ product.name }}</h1>
+                
+                <!-- Rating -->
+                <div class="rating mb-3">
+                    <div class="stars">
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="far fa-star text-warning"></i>
+                    </div>
+                    <span class="ms-2 text-muted">(4.0/5.0 - 128 ulasan)</span>
+                </div>
+
+                <!-- Price -->
+                <div class="price-section mb-4">
+                    <h2 class="text-primary h1 mb-2">Rp {{ "{:,.0f}".format(product.price) }}</h2>
+                    <span class="badge bg-success fs-6">Gratis Ongkir</span>
+                </div>
+
+                <!-- Stock Status -->
+                <div class="stock-status mb-4">
+                    {% if product.stock > 0 %}
+                        <p class="text-success mb-2">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Stok tersedia: {{ product.stock }} unit
+                        </p>
+                    {% else %}
+                        <p class="text-danger mb-2">
+                            <i class="fas fa-times-circle me-2"></i>
+                            Stok habis
+                        </p>
+                    {% endif %}
+                </div>
+
+                <!-- Quantity Selector -->
+                <div class="quantity-selector mb-4">
+                    <label for="quantity" class="form-label">Jumlah:</label>
+                    <div class="input-group" style="width: 150px;">
+                        <button class="btn btn-outline-secondary" type="button" onclick="decreaseQuantity()">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" class="form-control text-center" id="quantity" value="1" min="1" max="{{ product.stock }}">
+                        <button class="btn btn-outline-secondary" type="button" onclick="increaseQuantity()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons mb-4">
+                    {% if product.stock > 0 %}
+                        <form method="POST" action="{{ url_for('add_to_cart', product_id=product.id) }}" class="d-inline">
+                            <input type="hidden" name="quantity" id="quantity-hidden" value="1">
+                            <button type="submit" class="btn btn-primary btn-lg me-md-2" id="addToCartBtn">
+                                <i class="fas fa-cart-plus me-2"></i>Tambah ke Keranjang
+                            </button>
+                        </form>
+                        <button class="btn btn-outline-primary btn-lg" onclick="buyNow()">
+                            <i class="fas fa-bolt me-2"></i>Beli Sekarang
+                        </button>
+                    {% else %}
+                        <button class="btn btn-secondary btn-lg" disabled>
+                            <i class="fas fa-times me-2"></i>Stok Habis
+                        </button>
+                    {% endif %}
+                </div>
+
+                <!-- Product Features -->
+                <div class="product-features mb-4">
+                    <h5>Fitur Produk:</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Garansi 1 tahun</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Pengiriman gratis</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Return 30 hari</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Customer service 24/7</li>
+                    </ul>
+                </div>
+
+                <!-- Share Buttons -->
+                <div class="share-buttons">
+                    <h6>Bagikan:</h6>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="shareToFacebook()">
+                            <i class="fab fa-facebook-f"></i>
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="shareToTwitter()">
+                            <i class="fab fa-twitter"></i>
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="shareToWhatsApp()">
+                            <i class="fab fa-whatsapp"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="copyLink()">
+                            <i class="fas fa-link"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Details Tabs -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="productTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab">
+                        Deskripsi
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="specifications-tab" data-bs-toggle="tab" data-bs-target="#specifications" type="button" role="tab">
+                        Spesifikasi
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">
+                        Ulasan (128)
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="productTabsContent">
+                <div class="tab-pane fade show active" id="description" role="tabpanel">
+                    <div class="p-4">
+                        <h4>Deskripsi Produk</h4>
+                        <p>{{ product.description }}</p>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="specifications" role="tabpanel">
+                    <div class="p-4">
+                        <h4>Spesifikasi Teknis</h4>
+                        <table class="table table-striped">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Brand</strong></td>
+                                    <td>Brand Name</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Model</strong></td>
+                                    <td>{{ product.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Kategori</strong></td>
+                                    <td>{{ product.category.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Berat</strong></td>
+                                    <td>500 gram</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Dimensi</strong></td>
+                                    <td>10 x 5 x 2 cm</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="reviews" role="tabpanel">
+                    <div class="p-4">
+                        <h4>Ulasan Pelanggan</h4>
+                        <div class="review-summary mb-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-3 text-center">
+                                    <h2 class="text-primary">4.0</h2>
+                                    <div class="stars mb-2">
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="far fa-star text-warning"></i>
+                                    </div>
+                                    <p class="text-muted">128 ulasan</p>
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="rating-bars">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">5</span>
+                                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                <div class="progress-bar bg-warning" style="width: 70%"></div>
+                                            </div>
+                                            <span>70%</span>
+                                        </div>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">4</span>
+                                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                <div class="progress-bar bg-warning" style="width: 20%"></div>
+                                            </div>
+                                            <span>20%</span>
+                                        </div>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">3</span>
+                                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                <div class="progress-bar bg-warning" style="width: 5%"></div>
+                                            </div>
+                                            <span>5%</span>
+                                        </div>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">2</span>
+                                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                <div class="progress-bar bg-warning" style="width: 3%"></div>
+                                            </div>
+                                            <span>3%</span>
+                                        </div>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">1</span>
+                                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                <div class="progress-bar bg-warning" style="width: 2%"></div>
+                                            </div>
+                                            <span>2%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sample Reviews -->
+                        <div class="review-item border-bottom pb-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6>John Doe</h6>
+                                    <div class="stars mb-2">
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                    </div>
+                                    <p>Produk sangat bagus dan sesuai deskripsi. Pengiriman cepat!</p>
+                                </div>
+                                <small class="text-muted">2 hari yang lalu</small>
+                            </div>
+                        </div>
+                        
+                        <div class="review-item border-bottom pb-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6>Jane Smith</h6>
+                                    <div class="stars mb-2">
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="far fa-star text-warning"></i>
+                                    </div>
+                                    <p>Kualitas produk bagus, harga terjangkau. Recommended!</p>
+                                </div>
+                                <small class="text-muted">1 minggu yang lalu</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Products -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4">Produk Terkait</h3>
+            <div class="row">
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card h-100">
+                        <img src="https://via.placeholder.com/300x200/6c757d/ffffff?text=Related+1" class="card-img-top" alt="Related Product">
+                        <div class="card-body">
+                            <h6 class="card-title">Produk Terkait 1</h6>
+                            <p class="text-primary fw-bold">Rp 150.000</p>
+                            <button class="btn btn-outline-primary btn-sm">Lihat Detail</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card h-100">
+                        <img src="https://via.placeholder.com/300x200/6c757d/ffffff?text=Related+2" class="card-img-top" alt="Related Product">
+                        <div class="card-body">
+                            <h6 class="card-title">Produk Terkait 2</h6>
+                            <p class="text-primary fw-bold">Rp 200.000</p>
+                            <button class="btn btn-outline-primary btn-sm">Lihat Detail</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card h-100">
+                        <img src="https://via.placeholder.com/300x200/6c757d/ffffff?text=Related+3" class="card-img-top" alt="Related Product">
+                        <div class="card-body">
+                            <h6 class="card-title">Produk Terkait 3</h6>
+                            <p class="text-primary fw-bold">Rp 175.000</p>
+                            <button class="btn btn-outline-primary btn-sm">Lihat Detail</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card h-100">
+                        <img src="https://via.placeholder.com/300x200/6c757d/ffffff?text=Related+4" class="card-img-top" alt="Related Product">
+                        <div class="card-body">
+                            <h6 class="card-title">Produk Terkait 4</h6>
+                            <p class="text-primary fw-bold">Rp 125.000</p>
+                            <button class="btn btn-outline-primary btn-sm">Lihat Detail</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Product Gallery
+function changeMainImage(src) {
+    document.getElementById('mainImage').src = src;
+}
+
+// Quantity Controls
+function decreaseQuantity() {
+    const quantityInput = document.getElementById('quantity');
+    const quantityHidden = document.getElementById('quantity-hidden');
+    const currentValue = parseInt(quantityInput.value);
+    if (currentValue > 1) {
+        quantityInput.value = currentValue - 1;
+        quantityHidden.value = currentValue - 1;
+    }
+}
+
+function increaseQuantity() {
+    const quantityInput = document.getElementById('quantity');
+    const quantityHidden = document.getElementById('quantity-hidden');
+    const currentValue = parseInt(quantityInput.value);
+    const maxStock = {{ product.stock }};
+    if (currentValue < maxStock) {
+        quantityInput.value = currentValue + 1;
+        quantityHidden.value = currentValue + 1;
+    }
+}
+
+// Buy Now Function
+function buyNow() {
+    const quantity = document.getElementById('quantity').value;
+    const productId = {{ product.id }};
+    
+    // Redirect to checkout with this product
+    window.location.href = `{{ url_for('checkout') }}?product_id=${productId}&quantity=${quantity}`;
+}
+
+// Add to Cart with Animation
+document.getElementById('addToCartBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    const quantity = document.getElementById('quantity').value;
+    const productName = "{{ product.name }}";
+    const button = this;
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menambahkan...';
+    button.disabled = true;
+    
+    // Submit form
+    const form = button.closest('form');
+    const formData = new FormData(form);
+    
+    fetch(form.action, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Success animation
+            button.innerHTML = '<i class="fas fa-check me-2"></i>Berhasil!';
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-success');
+            
+            // Show success notification
+            showNotification('success', data.message);
+            
+            // Update cart badge
+            updateCartBadge(data.cart_count);
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.classList.remove('btn-success');
+                button.classList.add('btn-primary');
+                button.disabled = false;
+            }, 2000);
+        } else {
+            throw new Error(data.message || 'Gagal menambahkan ke keranjang');
+        }
+    })
+    .catch(error => {
+        // Error state
+        button.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Gagal!';
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-danger');
+        
+        showNotification('error', error.message || 'Gagal menambahkan ke keranjang. Silakan coba lagi.');
+        
+        // Reset button after 3 seconds
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-danger');
+            button.classList.add('btn-primary');
+            button.disabled = false;
+        }, 3000);
+    });
+});
+
+// Notification function
+function showNotification(type, message) {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.custom-notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `custom-notification alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Add styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideInRight 0.3s ease-out;
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Update cart badge
+function updateCartBadge(count) {
+    const cartBadge = document.getElementById('cartBadge');
+    if (cartBadge) {
+        cartBadge.textContent = count;
+        cartBadge.classList.add('updated');
+        setTimeout(() => {
+            cartBadge.classList.remove('updated');
+        }, 600);
+    }
+}
+
+// Share Functions
+function shareToFacebook() {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Check out this product: {{ product.name }}`);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
+}
+
+function shareToTwitter() {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Check out this product: {{ product.name }}`);
+    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+}
+
+function shareToWhatsApp() {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Check out this product: {{ product.name }}`);
+    window.open(`https://wa.me/?text=${text}%20${url}`, '_blank');
+}
+
+function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(function() {
+        showNotification('success', 'Link berhasil disalin ke clipboard!');
+    });
+}
+
+// Quantity input validation and sync
+document.getElementById('quantity').addEventListener('input', function() {
+    const value = parseInt(this.value);
+    const maxStock = {{ product.stock }};
+    const quantityHidden = document.getElementById('quantity-hidden');
+    
+    if (value < 1) {
+        this.value = 1;
+        quantityHidden.value = 1;
+    } else if (value > maxStock) {
+        this.value = maxStock;
+        quantityHidden.value = maxStock;
+    } else {
+        quantityHidden.value = value;
+    }
+});
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+    
+    .custom-notification {
+        border-radius: 8px;
+        border: none;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %} 

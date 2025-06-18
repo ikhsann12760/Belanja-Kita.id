@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Riwayat Pesanan{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="fas fa-history"></i> Riwayat Pesanan</h2>
+    
+    {% if orders %}
+        <div class="row">
+            {% for order in orders %}
+            <div class="col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Order #{{ order.id }}</h6>
+                        <span class="badge 
+                            {% if order.status == 'pending' %}bg-warning
+                            {% elif order.status == 'processing' %}bg-info
+                            {% elif order.status == 'shipped' %}bg-primary
+                            {% elif order.status == 'delivered' %}bg-success
+                            {% elif order.status == 'cancelled' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ order.status|title }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="mb-1"><strong>Total:</strong> Rp {{ "{:,.0f}".format(order.total_amount) }}</p>
+                                <p class="mb-1"><strong>Tanggal:</strong> {{ order.created_at.strftime('%d %B %Y %H:%M') }}</p>
+                                <p class="mb-1"><strong>Item:</strong> {{ order.items|length }} produk</p>
+                                <p class="mb-1"><strong>Ekspedisi:</strong> {{ order.courier|upper }}</p>
+                                {% if order.tracking_number %}
+                                <p class="mb-0"><strong>Resi:</strong> {{ order.tracking_number }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="{{ url_for('order_detail', order_id=order.id) }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye"></i> Detail
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+            <h4>Belum ada pesanan</h4>
+            <p class="text-muted">Anda belum memiliki riwayat pesanan</p>
+            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                <i class="fas fa-shopping-bag"></i> Mulai Belanja
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -1,0 +1,655 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Belanja Kita.id{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Admin Dashboard</h1>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success" onclick="openCreateOrderModal()">
+                <i class="fas fa-plus me-2"></i>Buat Pesanan
+            </button>
+            <button class="btn btn-primary" onclick="location.href='{{ url_for('add_product') }}'">
+                <i class="fas fa-plus me-2"></i>Tambah Produk
+            </button>
+            <button class="btn btn-outline-primary">
+                <i class="fas fa-download me-2"></i>Export Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_products') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-box me-2"></i>Kelola Produk
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-shopping-cart me-2"></i>Kelola Pesanan
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_customers') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-users me-2"></i>Kelola Customer
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_support') }}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-headset me-2"></i>Customer Support
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Produk
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ products|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-box fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Pesanan
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ orders|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Customer
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ users|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Tiket Support
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% set support_count = namespace(value=0) %}
+                                {% for user in users %}
+                                    {% set support_count.value = support_count.value + user.support_tickets|length %}
+                                {% endfor %}
+                                {{ support_count.value }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-headset fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Grafik Penjualan</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in">
+                            <div class="dropdown-header">Dropdown Header:</div>
+                            <a class="dropdown-item" href="#">Action</a>
+                            <a class="dropdown-item" href="#">Another action</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="#">Something else here</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Kategori Produk</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4 pb-2">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Pesanan Terbaru</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders[:5] %}
+                                <tr>
+                                    <td>#{{ order.id }}</td>
+                                    <td>{{ order.customer.username }}</td>
+                                    <td>Rp {{ "{:,.0f}".format(order.total_amount) }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' if order.status == 'pending' else 'danger' }}">
+                                            {{ order.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">Detail</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Produk Terlaris</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Produk</th>
+                                    <th>Kategori</th>
+                                    <th>Stok</th>
+                                    <th>Harga</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products[:5] %}
+                                <tr>
+                                    <td>{{ product.name }}</td>
+                                    <td>{{ product.category.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if product.stock > 0 else 'danger' }}">
+                                            {{ product.stock }}
+                                        </span>
+                                    </td>
+                                    <td>Rp {{ "{:,.0f}".format(product.price) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Order Modal -->
+<div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createOrderModalLabel">
+                    <i class="fas fa-plus me-2"></i>Buat Pesanan Baru
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createOrderForm">
+                    <!-- Customer Selection -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="customer_id" class="form-label">Pilih Customer <span class="text-danger">*</span></label>
+                            <select class="form-select" id="customer_id" name="customer_id" required>
+                                <option value="">Pilih Customer</option>
+                                {% for user in users if not user.is_admin %}
+                                <option value="{{ user.id }}">{{ user.username }} - {{ user.email }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Product Selection -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="product_id" class="form-label">Pilih Produk <span class="text-danger">*</span></label>
+                            <select class="form-select" id="product_id" name="product_id" required>
+                                <option value="">Pilih Produk</option>
+                                {% for product in products %}
+                                <option value="{{ product.id }}" data-price="{{ product.price }}" data-stock="{{ product.stock }}">
+                                    {{ product.name }} - Rp {{ "{:,.0f}".format(product.price) }} (Stok: {{ product.stock }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="quantity" class="form-label">Jumlah <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
+                        </div>
+                    </div>
+
+                    <!-- Shipping Information -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Informasi Pengiriman</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="recipient_name" class="form-label">Nama Penerima <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="recipient_name" name="recipient_name" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="recipient_phone" class="form-label">No. Telepon <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="recipient_phone" name="recipient_phone" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="shipping_address" class="form-label">Alamat Lengkap <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="shipping_address" name="shipping_address" rows="3" required></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="shipping_city" class="form-label">Kota <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="shipping_city" name="shipping_city" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="shipping_postal_code" class="form-label">Kode Pos <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="shipping_postal_code" name="shipping_postal_code" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="shipping_province" class="form-label">Provinsi <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="shipping_province" name="shipping_province" required>
+                                            <option value="">Pilih Provinsi</option>
+                                            <option value="DKI Jakarta">DKI Jakarta</option>
+                                            <option value="Jawa Barat">Jawa Barat</option>
+                                            <option value="Jawa Tengah">Jawa Tengah</option>
+                                            <option value="Jawa Timur">Jawa Timur</option>
+                                            <option value="Banten">Banten</option>
+                                            <option value="Sumatera Utara">Sumatera Utara</option>
+                                            <option value="Sumatera Barat">Sumatera Barat</option>
+                                            <option value="Sumatera Selatan">Sumatera Selatan</option>
+                                            <option value="Lampung">Lampung</option>
+                                            <option value="Kalimantan Barat">Kalimantan Barat</option>
+                                            <option value="Kalimantan Tengah">Kalimantan Tengah</option>
+                                            <option value="Kalimantan Selatan">Kalimantan Selatan</option>
+                                            <option value="Kalimantan Timur">Kalimantan Timur</option>
+                                            <option value="Sulawesi Utara">Sulawesi Utara</option>
+                                            <option value="Sulawesi Tengah">Sulawesi Tengah</option>
+                                            <option value="Sulawesi Selatan">Sulawesi Selatan</option>
+                                            <option value="Sulawesi Tenggara">Sulawesi Tenggara</option>
+                                            <option value="Bali">Bali</option>
+                                            <option value="Nusa Tenggara Barat">Nusa Tenggara Barat</option>
+                                            <option value="Nusa Tenggara Timur">Nusa Tenggara Timur</option>
+                                            <option value="Maluku">Maluku</option>
+                                            <option value="Papua">Papua</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="courier" class="form-label">Kurir <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="courier" name="courier" required>
+                                            <option value="">Pilih Kurir</option>
+                                            <option value="jne">JNE Express</option>
+                                            <option value="sicepat">SiCepat Express</option>
+                                            <option value="jnt">J&T Express</option>
+                                            <option value="pos">POS Indonesia</option>
+                                            <option value="ninja">Ninja Express</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="notes" class="form-label">Catatan</label>
+                                        <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Catatan tambahan untuk pesanan"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Ringkasan Pesanan</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Produk:</strong></td>
+                                            <td id="summary_product">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Jumlah:</strong></td>
+                                            <td id="summary_quantity">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Harga Satuan:</strong></td>
+                                            <td id="summary_price">-</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Subtotal:</strong></td>
+                                            <td id="summary_subtotal">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Ongkir:</strong></td>
+                                            <td id="summary_shipping">-</td>
+                                        </tr>
+                                        <tr class="table-active">
+                                            <td><strong>Total:</strong></td>
+                                            <td id="summary_total">-</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Batal
+                </button>
+                <button type="button" class="btn btn-success" onclick="submitOrder()">
+                    <i class="fas fa-check me-2"></i>Buat Pesanan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Sales Chart
+const salesCtx = document.getElementById('salesChart').getContext('2d');
+const salesChart = new Chart(salesCtx, {
+    type: 'line',
+    data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+            label: 'Penjualan',
+            data: [12, 19, 3, 5, 2, 3],
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+// Category Chart
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+const categoryChart = new Chart(categoryCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Elektronik', 'Pakaian', 'Makanan', 'Buku', 'Olahraga', 'Hobi'],
+        datasets: [{
+            data: [30, 25, 15, 10, 12, 8],
+            backgroundColor: [
+                '#FF6384',
+                '#36A2EB',
+                '#FFCE56',
+                '#4BC0C0',
+                '#9966FF',
+                '#FF9F40'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+// Order Modal Functions
+function openCreateOrderModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createOrderModal'));
+    modal.show();
+    initializeOrderModal();
+}
+
+function initializeOrderModal() {
+    const productSelect = document.getElementById('product_id');
+    const quantityInput = document.getElementById('quantity');
+    const courierSelect = document.getElementById('courier');
+    const provinceSelect = document.getElementById('shipping_province');
+
+    // Update order summary when product or quantity changes
+    function updateOrderSummary() {
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+        const quantity = parseInt(quantityInput.value) || 0;
+        
+        if (selectedOption && selectedOption.value) {
+            const productName = selectedOption.text.split(' - ')[0];
+            const price = parseFloat(selectedOption.dataset.price) || 0;
+            const subtotal = price * quantity;
+            
+            // Calculate shipping cost
+            const courier = courierSelect.value;
+            const province = provinceSelect.value;
+            const shippingCost = calculateShippingCost(courier, province);
+            const total = subtotal + shippingCost;
+            
+            // Update summary
+            document.getElementById('summary_product').textContent = productName;
+            document.getElementById('summary_quantity').textContent = quantity;
+            document.getElementById('summary_price').textContent = `Rp ${price.toLocaleString()}`;
+            document.getElementById('summary_subtotal').textContent = `Rp ${subtotal.toLocaleString()}`;
+            document.getElementById('summary_shipping').textContent = `Rp ${shippingCost.toLocaleString()}`;
+            document.getElementById('summary_total').textContent = `Rp ${total.toLocaleString()}`;
+        } else {
+            // Reset summary
+            document.getElementById('summary_product').textContent = '-';
+            document.getElementById('summary_quantity').textContent = '-';
+            document.getElementById('summary_price').textContent = '-';
+            document.getElementById('summary_subtotal').textContent = '-';
+            document.getElementById('summary_shipping').textContent = '-';
+            document.getElementById('summary_total').textContent = '-';
+        }
+    }
+
+    // Calculate shipping cost (same logic as backend)
+    function calculateShippingCost(courier, province) {
+        const baseCosts = {
+            'jne': 15000,
+            'sicepat': 12000,
+            'jnt': 13000,
+            'pos': 10000,
+            'ninja': 14000
+        };
+        
+        const provinceCosts = {
+            'DKI Jakarta': 0,
+            'Jawa Barat': 5000,
+            'Jawa Tengah': 8000,
+            'Jawa Timur': 10000,
+            'Banten': 3000,
+            'Sumatera Utara': 15000,
+            'Sumatera Barat': 12000,
+            'Sumatera Selatan': 10000,
+            'Lampung': 8000,
+            'Kalimantan Barat': 20000,
+            'Kalimantan Tengah': 18000,
+            'Kalimantan Selatan': 16000,
+            'Kalimantan Timur': 22000,
+            'Sulawesi Utara': 25000,
+            'Sulawesi Tengah': 22000,
+            'Sulawesi Selatan': 20000,
+            'Sulawesi Tenggara': 23000,
+            'Bali': 12000,
+            'Nusa Tenggara Barat': 15000,
+            'Nusa Tenggara Timur': 18000,
+            'Maluku': 30000,
+            'Papua': 35000
+        };
+        
+        const baseCost = baseCosts[courier] || 15000;
+        const provinceCost = provinceCosts[province] || 15000;
+        
+        return baseCost + provinceCost;
+    }
+
+    // Add event listeners
+    productSelect.addEventListener('change', updateOrderSummary);
+    quantityInput.addEventListener('input', updateOrderSummary);
+    courierSelect.addEventListener('change', updateOrderSummary);
+    provinceSelect.addEventListener('change', updateOrderSummary);
+}
+
+function submitOrder() {
+    const form = document.getElementById('createOrderForm');
+    const formData = new FormData(form);
+    
+    // Validate form
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = document.querySelector('#createOrderModal .btn-success');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memproses...';
+    submitBtn.disabled = true;
+    
+    fetch('/admin/order/create', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
+            modal.hide();
+            
+            // Show success notification
+            Swal.fire({
+                icon: 'success',
+                title: 'Pesanan Berhasil Dibuat!',
+                text: `Order Number: ${data.order_number}`,
+                showConfirmButton: true,
+                confirmButtonText: 'Lihat Pesanan',
+                showCancelButton: true,
+                cancelButtonText: 'Tutup'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `/admin/orders/${data.order_id}`;
+                }
+            });
+        } else {
+            throw new Error(data.message || 'Terjadi kesalahan');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal Membuat Pesanan',
+            text: error.message || 'Terjadi kesalahan saat membuat pesanan',
+            confirmButtonText: 'OK'
+        });
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Kelola Customer - Belanja Kita.id{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Kelola Customer</h1>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="exportCustomers()">
+                <i class="fas fa-download me-2"></i>Export Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="searchCustomer" placeholder="Cari customer...">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">Semua Status</option>
+                        <option value="active">Aktif</option>
+                        <option value="inactive">Nonaktif</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="sortBy">
+                        <option value="newest">Terbaru</option>
+                        <option value="oldest">Terlama</option>
+                        <option value="name">Nama A-Z</option>
+                        <option value="orders">Jumlah Pesanan</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" onclick="applyFilters()">
+                        <i class="fas fa-search me-2"></i>Cari
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customers Table -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Daftar Customer</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Nama Lengkap</th>
+                            <th>Telepon</th>
+                            <th>Status</th>
+                            <th>Pesanan</th>
+                            <th>Bergabung</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in customers %}
+                        <tr>
+                            <td>{{ customer.id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2">
+                                        <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ customer.username }}</strong>
+                                        {% if customer.last_login %}
+                                        <br><small class="text-muted">Login: {{ customer.last_login.strftime('%d/%m/%Y %H:%M') }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ customer.email }}</td>
+                            <td>{{ customer.full_name or '-' }}</td>
+                            <td>{{ customer.phone or '-' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if customer.is_active else 'danger' }}">
+                                    {{ 'Aktif' if customer.is_active else 'Nonaktif' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ customer.orders|length }} pesanan</span>
+                            </td>
+                            <td>{{ customer.created_at.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin_customer_detail', customer_id=customer.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-{{ 'danger' if customer.is_active else 'success' }}"
+                                            onclick="toggleCustomerStatus({{ customer.id }})">
+                                        <i class="fas fa-{{ 'ban' if customer.is_active else 'check' }}"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toggle Status Modal -->
+<div class="modal fade" id="toggleStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Konfirmasi Perubahan Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin mengubah status customer ini?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form id="toggleStatusForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-primary">Konfirmasi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleCustomerStatus(customerId) {
+    if (confirm('Apakah Anda yakin ingin mengubah status customer ini?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/customers/${customerId}/toggle_status`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function applyFilters() {
+    const search = document.getElementById('searchCustomer').value;
+    const status = document.getElementById('statusFilter').value;
+    const sort = document.getElementById('sortBy').value;
+    
+    let url = window.location.pathname + '?';
+    if (search) url += `search=${search}&`;
+    if (status) url += `status=${status}&`;
+    if (sort) url += `sort=${sort}&`;
+    
+    window.location.href = url;
+}
+
+function exportCustomers() {
+    // Implementation for exporting customer data
+    alert('Fitur export akan segera tersedia!');
+}
+
+// Auto-submit form when filters change
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+document.getElementById('sortBy').addEventListener('change', applyFilters);
+
+// Search on enter key
+document.getElementById('searchCustomer').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        applyFilters();
+    }
+});
+</script>
+{% endblock %} 

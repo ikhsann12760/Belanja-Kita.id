@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Kelola Pesanan - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-shopping-cart"></i> Kelola Pesanan</h2>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+        </a>
+    </div>
+
+    {% if orders %}
+    <div class="card">
+        <div class="card-header">
+            <h5>Daftar Pesanan</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID Pesanan</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Tanggal</th>
+                            <th>Ekspedisi</th>
+                            <th>Pembayaran</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <strong>#{{ order.id }}</strong>
+                                {% if order.tracking_number %}
+                                <br><small class="text-muted">Resi: {{ order.tracking_number }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ order.customer.username }}</strong><br>
+                                <small class="text-muted">{{ order.recipient_name }}</small>
+                            </td>
+                            <td>
+                                <strong class="text-success">Rp {{ "{:,.0f}".format(order.total_amount) }}</strong>
+                            </td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif order.status == 'processing' %}
+                                    <span class="badge bg-info">Processing</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-primary">Shipped</span>
+                                {% elif order.status == 'delivered' %}
+                                    <span class="badge bg-success">Delivered</span>
+                                {% elif order.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ order.created_at.strftime('%d/%m/%Y') }}<br>
+                                <small class="text-muted">{{ order.created_at.strftime('%H:%M') }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ order.courier|upper }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ order.payment_method|upper }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin_order_detail', order_id=order.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Detail
+                                    </a>
+                                    <a href="{{ url_for('print_order', order_id=order.id) }}" 
+                                       class="btn btn-sm btn-outline-secondary" target="_blank">
+                                        <i class="fas fa-print"></i> Print
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Belum ada pesanan</h5>
+        <p class="text-muted">Pesanan akan muncul di sini setelah customer melakukan checkout.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

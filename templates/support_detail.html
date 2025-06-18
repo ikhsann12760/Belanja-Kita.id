@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Tiket Support #{{ ticket.id }} - Belanja Kita.id{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">
+                    <i class="fas fa-headset text-primary me-2"></i>Detail Tiket Support #{{ ticket.id }}
+                </h1>
+                <a href="{{ url_for('customer_support') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Kembali
+                </a>
+            </div>
+
+            <!-- Ticket Information -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-ticket-alt me-2"></i>Informasi Tiket
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Subjek:</strong> {{ ticket.subject }}</p>
+                            <p><strong>Kategori:</strong> 
+                                <span class="badge bg-info">{{ ticket.category.title() }}</span>
+                            </p>
+                            <p><strong>Prioritas:</strong> 
+                                <span class="badge bg-{{ 'success' if ticket.priority == 'low' else 'warning' if ticket.priority == 'medium' else 'danger' if ticket.priority == 'high' else 'dark' }}">
+                                    {{ ticket.priority.title() }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-{{ 'warning' if ticket.status == 'open' else 'info' if ticket.status == 'in_progress' else 'success' if ticket.status == 'resolved' else 'secondary' }}">
+                                    {{ ticket.status.replace('_', ' ').title() }}
+                                </span>
+                            </p>
+                            <p><strong>Dibuat:</strong> {{ ticket.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                            <p><strong>Update Terakhir:</strong> {{ ticket.updated_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                            {% if ticket.resolved_at %}
+                            <p><strong>Diselesaikan:</strong> {{ ticket.resolved_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h6><i class="fas fa-comment me-2"></i>Pesan Anda</h6>
+                        <div class="bg-light p-3 rounded">
+                            {{ ticket.message }}
+                        </div>
+                    </div>
+
+                    {% if ticket.admin_notes %}
+                    <div class="mb-4">
+                        <h6><i class="fas fa-reply me-2"></i>Respon dari Tim Support</h6>
+                        <div class="bg-info bg-opacity-10 p-3 rounded border-start border-info border-4">
+                            {{ ticket.admin_notes }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Status Timeline -->
+            <div class="card shadow-lg">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Timeline Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6>Tiket Dibuat</h6>
+                                <small class="text-muted">{{ ticket.created_at.strftime('%d %B %Y %H:%M') }}</small>
+                                <p class="mb-0">Tiket support Anda telah berhasil dibuat</p>
+                            </div>
+                        </div>
+                        
+                        {% if ticket.status != 'open' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6>Sedang Diproses</h6>
+                                <small class="text-muted">Tim kami sedang menangani tiket Anda</small>
+                                <p class="mb-0">Tiket Anda sedang ditangani oleh tim support kami</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if ticket.status == 'resolved' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6>Selesai</h6>
+                                <small class="text-muted">{{ ticket.resolved_at.strftime('%d %B %Y %H:%M') }}</small>
+                                <p class="mb-0">Tiket Anda telah diselesaikan</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if ticket.status == 'closed' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-secondary"></div>
+                            <div class="timeline-content">
+                                <h6>Ditutup</h6>
+                                <small class="text-muted">Tiket telah ditutup</small>
+                                <p class="mb-0">Tiket ini telah ditutup</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-envelope fa-2x text-primary mb-3"></i>
+                            <h5>Email Support</h5>
+                            <p class="text-muted">support@belanjakita.id</p>
+                            <a href="mailto:support@belanjakita.id" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-envelope me-1"></i>Kirim Email
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-phone fa-2x text-success mb-3"></i>
+                            <h5>Hotline</h5>
+                            <p class="text-muted">+62 123 456 789</p>
+                            <a href="tel:+62123456789" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-phone me-1"></i>Telepon
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -35px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: -29px;
+    top: 17px;
+    width: 2px;
+    height: 20px;
+    background-color: #dee2e6;
+}
+
+.timeline-content h6 {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.timeline-content small {
+    font-size: 12px;
+}
+</style>
+{% endblock %} 

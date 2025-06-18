@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Pesanan {{ order.order_number }} - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-shopping-cart"></i> Detail Pesanan {{ order.order_number }}</h2>
+        <div>
+            <a href="{{ url_for('print_order', order_id=order.id) }}" class="btn btn-outline-secondary" target="_blank">
+                <i class="fas fa-print"></i> Print
+            </a>
+            <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Order Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle"></i> Informasi Pesanan</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Order Number:</strong> <span class="fw-bold text-primary">{{ order.order_number }}</span></p>
+                            <p><strong>ID Pesanan:</strong> #{{ order.id }}</p>
+                            <p><strong>Customer:</strong> {{ order.customer.username }} ({{ order.customer.email }})</p>
+                            <p><strong>Tanggal Pesanan:</strong> {{ order.created_at.strftime('%d %B %Y %H:%M') }}</p>
+                            <p><strong>Status:</strong> 
+                                {% if order.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif order.status == 'processing' %}
+                                    <span class="badge bg-info">Processing</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-primary">Shipped</span>
+                                {% elif order.status == 'delivered' %}
+                                    <span class="badge bg-success">Delivered</span>
+                                {% elif order.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Total Pembayaran:</strong> <span class="text-success fw-bold">Rp {{ "{:,.0f}".format(order.total_amount) }}</span></p>
+                            <p><strong>Metode Pembayaran:</strong> <span class="fw-bold text-info">{{ order.payment_method|upper }}</span></p>
+                            <p><strong>Ekspedisi:</strong> {{ order.courier|upper }}</p>
+                            <p><strong>Ongkos Kirim:</strong> Rp {{ "{:,.0f}".format(order.shipping_cost) }}</p>
+                            {% if order.tracking_number %}
+                            <p><strong>No. Resi:</strong> 
+                                <span class="fw-bold text-info">{{ order.tracking_number }}</span>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyTrackingNumber('{{ order.tracking_number }}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipping Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-shipping-fast"></i> Informasi Pengiriman</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Penerima</h6>
+                            <p class="mb-1"><strong>Nama:</strong> {{ order.recipient_name }}</p>
+                            <p class="mb-1"><strong>Telepon:</strong> {{ order.recipient_phone }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Alamat</h6>
+                            <p class="mb-1">{{ order.shipping_address }}</p>
+                            <p class="mb-1">{{ order.shipping_city }}, {{ order.shipping_province }} {{ order.shipping_postal_code }}</p>
+                        </div>
+                    </div>
+                    {% if order.notes %}
+                    <div class="mt-3">
+                        <h6>Catatan</h6>
+                        <p class="mb-1">{{ order.notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-box"></i> Item Pesanan</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in order.items %}
+                    <div class="row mb-3 border-bottom pb-3">
+                        <div class="col-md-2">
+                            {% if item.product.image_url %}
+                                <img src="{{ url_for('static', filename=item.product.image_url) }}" 
+                                     class="img-fluid rounded" alt="{{ item.product.name }}">
+                            {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                     style="height: 80px;">
+                                    <i class="fas fa-image text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6>{{ item.product.name }}</h6>
+                            <p class="text-muted small">Qty: {{ item.quantity }}</p>
+                            <p class="text-success fw-bold">Rp {{ "{:,.0f}".format(item.price) }} x {{ item.quantity }}</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <strong>Rp {{ "{:,.0f}".format(item.price * item.quantity) }}</strong>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Status Update -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-edit"></i> Update Status</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status Pesanan</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
+                                <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>Shipped</option>
+                                <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tracking_number" class="form-label">Nomor Resi</label>
+                            <input type="text" class="form-control" id="tracking_number" name="tracking_number" 
+                                   value="{{ order.tracking_number or '' }}" 
+                                   placeholder="Masukkan nomor resi pengiriman">
+                            <div class="form-text">Wajib diisi jika status diubah menjadi "Shipped"</div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update Status
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-bolt"></i> Aksi Cepat</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="mailto:{{ order.customer.email }}?subject=Pesanan #{{ order.id }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-envelope"></i> Email Customer
+                        </a>
+                        <a href="tel:{{ order.recipient_phone }}" class="btn btn-outline-success">
+                            <i class="fas fa-phone"></i> Telepon Penerima
+                        </a>
+                        <a href="{{ url_for('print_order', order_id=order.id) }}" 
+                           class="btn btn-outline-secondary" target="_blank">
+                            <i class="fas fa-print"></i> Print Invoice
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-require tracking number when status is "shipped"
+document.getElementById('status').addEventListener('change', function() {
+    const trackingInput = document.getElementById('tracking_number');
+    if (this.value === 'shipped') {
+        trackingInput.required = true;
+        trackingInput.classList.add('border-warning');
+    } else {
+        trackingInput.required = false;
+        trackingInput.classList.remove('border-warning');
+    }
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const status = document.getElementById('status').value;
+    const tracking = document.getElementById('tracking_number').value;
+    
+    if (status === 'shipped' && !tracking.trim()) {
+        e.preventDefault();
+        alert('Nomor resi wajib diisi untuk status "Shipped"!');
+        document.getElementById('tracking_number').focus();
+        return false;
+    }
+});
+</script>
+
+<script>
+function copyTrackingNumber(trackingNumber) {
+    navigator.clipboard.writeText(trackingNumber).then(function() {
+        // Show success message
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+        
+        setTimeout(function() {
+            button.innerHTML = originalHTML;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        alert('Gagal menyalin nomor resi');
+    });
+}
+</script>
+{% endblock %} 
