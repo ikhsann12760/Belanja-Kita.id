@@ -218,7 +218,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Email**: support@ecommerce.com
+- **Email**: gus.ikhsann12@gmail.com
 - **Documentation**: [Wiki](https://github.com/username/ecommerce/wiki)
 - **Issues**: [GitHub Issues](https://github.com/username/ecommerce/issues)
 
@@ -231,4 +231,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ by [Your Name]** 
+**Made with ❤️ by [agus ikhsan N]** 
