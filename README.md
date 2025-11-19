@@ -84,8 +84,8 @@ python app.py
 ```
 
 ### 3. Akses Website
-- **Customer**: http://localhost:5000
-- **Admin**: http://localhost:5000/admin
+- **Customer**: http://localhost:5001
+- **Admin**: http://localhost:5001/admin
   - Username: `admin`
   - Password: `admin123`
 
@@ -232,3 +232,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Made with ❤️ by [agus ikhsan N]** 
+
